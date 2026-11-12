@@ -26,24 +26,37 @@
     </div>
   </header>
 
+  <section class="segretario" aria-label="Segretario">
+    <canvas id="robot" class="robot" aria-label="Tocca il robottino per parlare" role="button" tabindex="0"></canvas>
+    <div class="nuvola" aria-live="polite">
+      <p id="detto" class="detto"></p>
+      <p id="risposta" class="risposta">Ciao! Sono il tuo segretario.</p>
+      <div id="conferma" class="conferma" hidden>
+        <button id="no" class="pulsante no">No</button>
+        <button id="si" class="pulsante si">Sì, confermo</button>
+      </div>
+      <button id="ascolta-risposta" class="ascolta" hidden>🔊 Ascolta</button>
+    </div>
+  </section>
+
+  <button id="attiva-notifiche" class="banner" hidden>🔔 Attiva i promemoria sul telefono</button>
+  <p id="aiuto-notifiche" class="banner-info" hidden>Per ricevere i promemoria: in Safari tocca Condividi → «Aggiungi alla schermata Home» e apri l'app dall'icona.</p>
+
   <nav id="settimana" class="settimana" aria-label="Giorni della settimana"></nav>
 
   <main class="giornata">
     <h2 id="titolo-giorno" class="titolo-giorno"></h2>
     <ul id="elenco" class="elenco" aria-live="polite"></ul>
-    <p id="vuoto" class="vuoto" hidden>Nessun appuntamento.<br>Tocca il microfono e di' per esempio<br><em>«Domani alle 10 vedo Rossi»</em>.</p>
+    <p id="vuoto" class="vuoto piccolo" hidden>Nessun appuntamento. Di' per esempio <em>«Domani alle 10 vedo Rossi»</em>.</p>
     <p id="errore-elenco" class="vuoto" hidden>Non riesco a leggere il calendario. Riprova tra poco.</p>
+
+    <section class="sezione-cose">
+      <h2 class="titolo-giorno">Cose da fare</h2>
+      <ul id="cose" class="elenco-cose"></ul>
+      <p id="cose-vuoto" class="vuoto piccolo" hidden>Niente in sospeso. Di' per esempio <em>«Ricordami di chiamare Bianchi»</em>.</p>
+    </section>
   </main>
 
-  <section id="fumetto" class="fumetto" hidden aria-live="polite">
-    <p id="detto" class="detto"></p>
-    <p id="risposta" class="risposta"></p>
-    <div id="conferma" class="conferma" hidden>
-      <button id="no" class="pulsante no">No</button>
-      <button id="si" class="pulsante si">Sì, confermo</button>
-    </div>
-    <button id="chiudi-fumetto" class="chiudi" aria-label="Chiudi">×</button>
-  </section>
 
   <footer class="piede">
     <form id="form-testo" class="form-testo" hidden>
@@ -60,6 +73,7 @@
     <p id="stato" class="stato">Tocca e parla</p>
   </footer>
 
-  <script src="app.js"></script>
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ import type { Config } from "@netlify/functions";
 import { AgendaGoogle } from "../../src/agenda.js";
 import { conferma, rispondi, type Dipendenze, type Scambio } from "../../src/assistente.js";
 import type { Azione } from "../../src/firma.js";
+import { coseDa } from "../../src/servizi.js";
 
 function json(dati: unknown, status = 200): Response {
   return new Response(JSON.stringify(dati), {
@@ -32,6 +33,7 @@ function prepara(): Dipendenze {
         variabile("GOOGLE_SA_PRIVATE_KEY"),
         variabile("GOOGLE_CALENDAR_ID"),
       ),
+      cose: coseDa(),
       segreto: variabile("APP_SECRET"),
     };
   }

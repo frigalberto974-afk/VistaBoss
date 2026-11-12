@@ -134,3 +134,24 @@ describe("assistente", () => {
     ]);
   });
 });
+
+describe("cose da fare", () => {
+  it("aggiunge e segna fatta tramite gli strumenti", async () => {
+    const elenco: { id: string; testo: string; creata: string; fatta: boolean }[] = [];
+    const cose = {
+      async elenca() { return elenco; },
+      async aggiungi(testo: string) { const c = { id: "c1", testo, creata: "", fatta: false }; elenco.push(c); return c; },
+      async completa(id: string) { const i = elenco.findIndex((c) => c.id === id); return i < 0 ? null : { ...elenco.splice(i, 1)[0], fatta: true }; },
+    };
+    const { modello } = modelloFinto([
+      [{ type: "tool_use", id: "t1", name: "aggiungi_cosa_da_fare", input: { testo: "chiamare Bianchi" } }],
+      [{ type: "text", text: "Segnato: chiamare Bianchi." }],
+      [{ type: "tool_use", id: "t2", name: "segna_cosa_fatta", input: { id: "c1" } }],
+      [{ type: "text", text: "Bene, tolto dalla lista." }],
+    ]);
+    await rispondi("ricordami di chiamare Bianchi", [], { modello, agenda: new AgendaMemoria(), cose, segreto, adesso });
+    expect(elenco.map((c) => c.testo)).toEqual(["chiamare Bianchi"]);
+    await rispondi("ho chiamato Bianchi", [], { modello, agenda: new AgendaMemoria(), cose, segreto, adesso });
+    expect(elenco).toEqual([]);
+  });
+});

@@ -1,9 +1,11 @@
-// Agenda: settimana, appuntamenti del giorno e assistente vocale.
-"use strict";
+// Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
+import { creaRobot } from "./robot.js";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
-const stato = { storia: [], inAttesa: null, occupato: false, riconoscimento: null, scelto: null, lunedi: null, impegni: [] };
+const stato = { storia: [], inAttesa: null, occupato: false, riconoscimento: null, scelto: null, lunedi: null, impegni: [], cose: [], ultimaRisposta: "" };
+let robot = { imposta() {}, parla() {}, parola() {} };
+try { robot = creaRobot($("robot")); } catch (err) { console.error("Robot non disponibile", err); }
 
 // ---- Date (sempre nel fuso di Roma) ----
 const pad = (n) => String(n).padStart(2, "0");
@@ -97,6 +99,9 @@ function parla(testo) {
   u.lang = "it-IT";
   const v = voceItaliana();
   if (v) u.voice = v;
+  u.onstart = () => robot.parla(true);
+  u.onboundary = () => robot.parola();
+  u.onend = u.onerror = () => robot.parla(false);
   speechSynthesis.speak(u);
 }
 let voceSbloccata = false;
@@ -110,6 +115,7 @@ function sbloccaVoce() {
 function impostaStato(testo, classe) {
   $("stato").textContent = testo;
   $("microfono").className = "microfono" + (classe ? " " + classe : "");
+  robot.imposta(classe === "ascolto" ? "ascolto" : classe === "attesa" ? "pensa" : "riposo");
 }
 function aggiungiStoria(ruolo, testo) {
   stato.storia.push({ ruolo, testo });
@@ -121,8 +127,10 @@ async function chiama(corpo) {
 }
 function mostraRisposta(dati) {
   const testo = dati.risposta || dati.errore || "Qualcosa non ha funzionato.";
-  $("fumetto").hidden = false;
   $("risposta").textContent = testo;
+  stato.ultimaRisposta = testo;
+  $("ascolta-risposta").hidden = true;
+  if (/^(Fatto|Segnat|Aggiunt|Bene)/.test(testo)) robot.imposta("contento");
   aggiungiStoria("assistente", testo);
   stato.inAttesa = dati.inAttesa || null;
   $("conferma").hidden = !stato.inAttesa;
@@ -136,7 +144,6 @@ async function invia(testo) {
   testo = testo.trim();
   if (!testo || stato.occupato) return;
   stato.occupato = true;
-  $("fumetto").hidden = false;
   $("detto").textContent = "«" + testo + "»";
   $("risposta").textContent = "…";
   $("conferma").hidden = true;
@@ -158,6 +165,7 @@ async function invia(testo) {
       mostraRisposta(await chiama({ testo, storia }));
     }
     caricaSettimana();
+    caricaCose();
   } catch {
     mostraRisposta({ risposta: "Non riesco a collegarmi. Controlla la connessione e riprova." });
   } finally {
@@ -196,7 +204,6 @@ function ascolta() {
       else parziale += e.results[i][0].transcript;
     }
     ultimo = (finale + " " + parziale).trim();
-    $("fumetto").hidden = false;
     $("detto").textContent = ultimo;
     $("risposta").textContent = "";
     $("conferma").hidden = true;
@@ -218,12 +225,100 @@ function ascolta() {
   r.start();
 }
 
+// ---- Cose da fare ----
+async function caricaCose() {
+  try {
+    const r = await fetch("/api/cose");
+    if (!r.ok) throw new Error(String(r.status));
+    stato.cose = (await r.json()).cose || [];
+  } catch { stato.cose = []; }
+  disegnaCose();
+}
+function disegnaCose() {
+  const ul = $("cose");
+  ul.innerHTML = "";
+  for (const c of stato.cose) {
+    const li = document.createElement("li");
+    li.className = "cosa";
+    const b = document.createElement("button");
+    b.className = "spunta";
+    b.setAttribute("aria-label", "Segna come fatta: " + c.testo);
+    b.addEventListener("click", async () => {
+      li.classList.add("fatta");
+      try { await fetch("/api/cose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ azione: "completa", id: c.id }) }); } catch { /* ricaricata sotto */ }
+      robot.imposta("contento");
+      setTimeout(caricaCose, 400);
+    });
+    const t = document.createElement("span");
+    t.className = "testo";
+    t.textContent = c.testo;
+    li.append(b, t);
+    ul.appendChild(li);
+  }
+  $("cose-vuoto").hidden = stato.cose.length > 0;
+}
+
+// ---- Riepilogo all'apertura ----
+async function riepilogoIniziale() {
+  robot.imposta("pensa");
+  try {
+    const r = await fetch("/api/riepilogo");
+    const { testo } = await r.json();
+    $("risposta").textContent = testo;
+    stato.ultimaRisposta = testo;
+    aggiungiStoria("assistente", testo);
+    // Safari permette la voce solo dopo un tocco: offriamo il tasto "Ascolta".
+    $("ascolta-risposta").hidden = false;
+  } catch { $("risposta").textContent = "Ciao! Tocca me o il microfono e dimmi cosa ti serve."; }
+  robot.imposta("riposo");
+}
+
+// ---- Notifiche push ----
+const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const pushSupportato = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+function base64InUint8(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+async function preparaNotifiche() {
+  if (!("serviceWorker" in navigator)) return;
+  try { await navigator.serviceWorker.register("/sw.js"); } catch { return; }
+  if (!pushSupportato) { $("aiuto-notifiche").hidden = standalone; return; }
+  if (Notification.permission === "granted") { await iscrivi(); return; }
+  if (Notification.permission === "default") $("attiva-notifiche").hidden = false;
+}
+async function iscrivi() {
+  const reg = await navigator.serviceWorker.ready;
+  let iscr = await reg.pushManager.getSubscription();
+  if (!iscr) {
+    const { chiavePubblica } = await (await fetch("/api/iscrizione")).json();
+    iscr = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64InUint8(chiavePubblica) });
+  }
+  await fetch("/api/iscrizione", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(iscr) });
+}
+async function attivaNotifiche() {
+  sbloccaVoce();
+  const esito = await Notification.requestPermission();
+  $("attiva-notifiche").hidden = true;
+  if (esito === "granted") {
+    try { await iscrivi(); mostraRisposta({ risposta: "Perfetto. Ti avviserò alle 8 con il riepilogo, mezz'ora prima di ogni appuntamento e alle 17 per le cose da fare." }); }
+    catch { mostraRisposta({ risposta: "Non sono riuscito ad attivare i promemoria. Riprova più tardi." }); }
+  } else {
+    mostraRisposta({ risposta: "Va bene, niente promemoria. Puoi attivarli dalle impostazioni del telefono." });
+  }
+}
+
 // ---- Avvio ----
 $("microfono").addEventListener("click", ascolta);
 $("tastiera").addEventListener("click", () => mostraTastiera($("form-testo").hidden));
 $("si").addEventListener("click", () => { sbloccaVoce(); invia("sì"); });
 $("no").addEventListener("click", () => { sbloccaVoce(); invia("no"); });
-$("chiudi-fumetto").addEventListener("click", () => { $("fumetto").hidden = true; stato.inAttesa = null; if (window.speechSynthesis) speechSynthesis.cancel(); });
+$("robot").addEventListener("click", ascolta);
+$("robot").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ascolta(); } });
+$("ascolta-risposta").addEventListener("click", () => { sbloccaVoce(); $("ascolta-risposta").hidden = true; parla(stato.ultimaRisposta); });
+$("attiva-notifiche").addEventListener("click", attivaNotifiche);
 $("form-testo").addEventListener("submit", (e) => {
   e.preventDefault();
   sbloccaVoce();
@@ -236,9 +331,12 @@ $("form-testo").addEventListener("submit", (e) => {
 $("oggi").addEventListener("click", () => vaiA(oggiLocale()));
 $("settimana-prec").addEventListener("click", () => vaiA(aggiungiGiorni(stato.scelto, -7)));
 $("settimana-succ").addEventListener("click", () => vaiA(aggiungiGiorni(stato.scelto, 7)));
-document.addEventListener("visibilitychange", () => { if (!document.hidden) caricaSettimana(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { caricaSettimana(); caricaCose(); } });
 if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => voceItaliana();
 
 stato.scelto = oggiLocale();
 stato.lunedi = lunediDi(stato.scelto);
 caricaSettimana();
+caricaCose();
+riepilogoIniziale();
+preparaNotifiche();

@@ -81,10 +81,10 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; }
 .giorno.oggi .numero { color: #8fb6ff; }
 .giorno.scelto { background: var(--accento); }
 .giorno.scelto .sigla, .giorno.scelto .numero { color: #fff; }
-.giorno.scelto .punto { background: #fff; }
+.giorno.scelto.con-impegni .punto { background: #fff; }
 
 /* ---- Giornata ---- */
-.giornata { flex: 1; padding: 16px 16px 260px; }
+.giornata { flex: 1; padding: 16px 16px 200px; }
 .titolo-giorno { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
 .elenco { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .impegno {
@@ -105,34 +105,71 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; }
 .vuoto { color: var(--tenue); text-align: center; margin: 40px 0; line-height: 1.6; }
 .vuoto[hidden] { display: none; }
 
-/* ---- Fumetto risposta ---- */
-.fumetto {
-  position: fixed;
-  left: 12px; right: 12px;
-  bottom: calc(200px + env(safe-area-inset-bottom));
-  z-index: 6;
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 16px 44px 16px 16px;
+/* ---- Segretario ---- */
+.segretario {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px 10px;
+}
+.robot { width: 132px; height: 150px; display: block; cursor: pointer; touch-action: manipulation; }
+.nuvola {
+  position: relative;
+  min-height: 92px;
+  padding: 12px 14px;
   border-radius: 18px;
   background: var(--superficie-2);
   border: 1px solid var(--bordo);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
 }
-.fumetto[hidden] { display: none; }
-.detto { margin: 0 0 6px; color: var(--tenue); font-size: 15px; }
-.risposta { margin: 0; font-size: 19px; line-height: 1.4; }
-.chiudi {
-  position: absolute; top: 8px; right: 8px;
-  width: 32px; height: 32px;
-  border: 0; border-radius: 50%;
-  background: transparent; color: var(--tenue); font-size: 22px;
+.nuvola::before {
+  content: "";
+  position: absolute; left: -8px; top: 38px;
+  width: 14px; height: 14px;
+  background: var(--superficie-2);
+  border-left: 1px solid var(--bordo); border-bottom: 1px solid var(--bordo);
+  transform: rotate(45deg);
 }
-.conferma { display: flex; gap: 10px; margin-top: 14px; }
+.detto { margin: 0 0 4px; color: var(--tenue); font-size: 14px; }
+.detto:empty { display: none; }
+.risposta { margin: 0; font-size: 16px; line-height: 1.4; max-height: 9.8em; overflow-y: auto; }
+.conferma { display: flex; gap: 8px; margin-top: 10px; }
 .conferma[hidden] { display: none; }
-.pulsante { flex: 1; padding: 14px; border: 0; border-radius: 12px; font-size: 17px; font-weight: 600; color: #fff; }
+.pulsante { flex: 1; padding: 11px; border: 0; border-radius: 12px; font-size: 16px; font-weight: 600; color: #fff; }
 .pulsante.si { background: var(--verde); }
 .pulsante.no { background: #3a3f4b; }
+.ascolta { margin-top: 8px; border: 0; border-radius: 10px; padding: 6px 10px; background: var(--accento-tenue); color: #8fb6ff; font-size: 14px; font-weight: 600; }
+.ascolta[hidden] { display: none; }
+
+.banner {
+  display: block;
+  margin: 0 16px 10px; width: calc(100% - 32px);
+  padding: 12px; border: 0; border-radius: 12px;
+  background: var(--accento-tenue); color: #8fb6ff; font-weight: 600; font-size: 15px;
+}
+.banner[hidden], .banner-info[hidden] { display: none; }
+.banner-info { margin: 0 16px 10px; color: var(--tenue); font-size: 13px; text-align: center; }
+
+/* ---- Cose da fare ---- */
+.sezione-cose { margin-top: 26px; }
+.elenco-cose { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cosa {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--superficie);
+}
+.spunta {
+  flex: none;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--tenue);
+  background: transparent;
+}
+.spunta:active, .cosa.fatta .spunta { background: var(--verde); border-color: var(--verde); }
+.cosa .testo { font-size: 16px; overflow-wrap: anywhere; }
+.cosa.fatta .testo { text-decoration: line-through; color: var(--tenue); }
+.vuoto.piccolo { margin: 8px 0; text-align: left; font-size: 14px; }
 
 /* ---- Piede con microfono ---- */
 .piede {
@@ -140,8 +177,9 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; }
   left: 0; right: 0; bottom: 0;
   z-index: 7;
   /* Spazio in basso per il badge "Powered by Netlify", che altrimenti copre il microfono. */
-  padding: 10px 16px calc(64px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--sfondo) 70%, rgba(15, 17, 21, 0));
+  padding: 10px 16px calc(58px + env(safe-area-inset-bottom));
+  background: var(--sfondo);
+  border-top: 1px solid var(--bordo);
 }
 .comandi {
   display: grid;
@@ -153,14 +191,14 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; }
 .tasto-tastiera { justify-self: start; }
 .segnaposto { width: 40px; }
 .microfono {
-  width: 84px; height: 84px;
+  width: 68px; height: 68px;
   border: 0; border-radius: 50%;
   background: var(--accento);
   display: grid; place-items: center;
   box-shadow: 0 8px 28px rgba(47, 124, 246, .4);
   transition: transform .15s ease, background .15s ease;
 }
-.microfono svg { width: 38px; height: 38px; fill: #fff; }
+.microfono svg { width: 32px; height: 32px; fill: #fff; }
 .microfono:active { transform: scale(.95); }
 .microfono.ascolto { background: var(--rosso); animation: pulsa 1.2s ease-in-out infinite; }
 .microfono.attesa { background: #3a3f4b; box-shadow: none; }
@@ -168,7 +206,7 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; }
   0%, 100% { box-shadow: 0 0 0 0 rgba(229, 72, 77, .5); }
   50% { box-shadow: 0 0 0 18px rgba(229, 72, 77, 0); }
 }
-.stato { margin: 6px 0 0; text-align: center; color: var(--tenue); font-size: 14px; }
+.stato { margin: 4px 0 0; text-align: center; color: var(--tenue); font-size: 13px; }
 
 .form-testo { display: flex; gap: 8px; max-width: 560px; margin: 0 auto 10px; }
 .form-testo[hidden] { display: none; }
