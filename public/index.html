@@ -14,37 +14,51 @@
   <link rel="stylesheet" href="stile.css">
 </head>
 <body>
-  <main id="schermata-pin" class="schermata" hidden>
-    <h1>Agenda</h1>
-    <p class="aiuto">Inserisci il PIN</p>
-    <form id="form-pin">
-      <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" aria-label="PIN">
-      <button type="submit" class="pulsante">Entra</button>
-    </form>
-    <p id="errore-pin" class="errore" role="alert"></p>
+  <header class="testata">
+    <div class="titoli">
+      <h1>Agenda</h1>
+      <p id="mese" class="sottotitolo"></p>
+    </div>
+    <div class="navigazione">
+      <button id="settimana-prec" class="tasto-icona" aria-label="Settimana precedente">‹</button>
+      <button id="oggi" class="tasto-oggi">Oggi</button>
+      <button id="settimana-succ" class="tasto-icona" aria-label="Settimana successiva">›</button>
+    </div>
+  </header>
+
+  <nav id="settimana" class="settimana" aria-label="Giorni della settimana"></nav>
+
+  <main class="giornata">
+    <h2 id="titolo-giorno" class="titolo-giorno"></h2>
+    <ul id="elenco" class="elenco" aria-live="polite"></ul>
+    <p id="vuoto" class="vuoto" hidden>Nessun appuntamento.<br>Tocca il microfono e di' per esempio<br><em>«Domani alle 10 vedo Rossi»</em>.</p>
+    <p id="errore-elenco" class="vuoto" hidden>Non riesco a leggere il calendario. Riprova tra poco.</p>
   </main>
 
-  <main id="schermata-app" class="schermata" hidden>
-    <section class="dialogo" aria-live="polite">
-      <p id="detto" class="detto"></p>
-      <p id="risposta" class="risposta">Tocca il microfono e parla.<br>Ad esempio: «Domani alle 10 vedo Rossi».</p>
-    </section>
-
+  <section id="fumetto" class="fumetto" hidden aria-live="polite">
+    <p id="detto" class="detto"></p>
+    <p id="risposta" class="risposta"></p>
     <div id="conferma" class="conferma" hidden>
-      <button id="si" class="pulsante si">Sì, confermo</button>
       <button id="no" class="pulsante no">No</button>
+      <button id="si" class="pulsante si">Sì, confermo</button>
     </div>
+    <button id="chiudi-fumetto" class="chiudi" aria-label="Chiudi">×</button>
+  </section>
 
-    <button id="microfono" class="microfono" aria-label="Parla">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
-    </button>
-    <p id="stato" class="stato">Tocca e parla</p>
-
-    <form id="form-testo" class="form-testo">
-      <input id="testo" type="text" placeholder="Oppure scrivi qui" autocomplete="off" enterkeyhint="send" aria-label="Scrivi una richiesta">
+  <footer class="piede">
+    <form id="form-testo" class="form-testo" hidden>
+      <input id="testo" type="text" placeholder="Scrivi una richiesta" autocomplete="off" enterkeyhint="send" aria-label="Scrivi una richiesta">
       <button type="submit" class="invia" aria-label="Invia">➤</button>
     </form>
-  </main>
+    <div class="comandi">
+      <button id="tastiera" class="tasto-icona tasto-tastiera" aria-label="Scrivi invece di parlare">⌨︎</button>
+      <button id="microfono" class="microfono" aria-label="Parla">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
+      </button>
+      <span class="segnaposto" aria-hidden="true"></span>
+    </div>
+    <p id="stato" class="stato">Tocca e parla</p>
+  </footer>
 
   <script src="app.js"></script>
 </body>
