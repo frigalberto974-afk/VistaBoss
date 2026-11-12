@@ -128,6 +128,7 @@ async function chiama(corpo) {
 }
 function mostraRisposta(dati) {
   const testo = dati.risposta || dati.errore || "Qualcosa non ha funzionato.";
+  $("detto").textContent = ""; // la trascrizione sparisce quando arriva la risposta
   $("risposta").textContent = testo;
   stato.ultimaRisposta = testo;
   $("ascolta-risposta").hidden = true;
@@ -189,7 +190,7 @@ function ascolta() {
   if (stato.riconoscimento) { stato.riconoscimento.stop(); return; }
   if (!Riconoscimento) {
     mostraTastiera(true);
-    impostaStato("Usa il microfono della tastiera per dettare");
+    $("risposta").textContent = "Questo telefono non mi permette di ascoltare direttamente: tocca il microfono della tastiera e detta.";
     return;
   }
   if (window.speechSynthesis) speechSynthesis.cancel();
@@ -222,7 +223,7 @@ function ascolta() {
     if (testo) invia(testo);
   };
   stato.riconoscimento = r;
-  impostaStato("Ti ascolto… tocca di nuovo per finire", "ascolto");
+  impostaStato("Ti ascolto…", "ascolto");
   r.start();
 }
 
@@ -313,7 +314,6 @@ async function attivaNotifiche() {
 
 // ---- Avvio ----
 $("microfono").addEventListener("click", ascolta);
-$("tastiera").addEventListener("click", () => mostraTastiera($("form-testo").hidden));
 $("si").addEventListener("click", () => { sbloccaVoce(); invia("sì"); });
 $("no").addEventListener("click", () => { sbloccaVoce(); invia("no"); });
 $("robot").addEventListener("click", ascolta);
@@ -326,12 +326,19 @@ $("form-testo").addEventListener("submit", (e) => {
   const t = $("testo").value;
   $("testo").value = "";
   $("testo").blur();
-  mostraTastiera(false);
   invia(t);
 });
-$("oggi").addEventListener("click", () => vaiA(oggiLocale()));
-$("settimana-prec").addEventListener("click", () => vaiA(aggiungiGiorni(stato.scelto, -7)));
-$("settimana-succ").addEventListener("click", () => vaiA(aggiungiGiorni(stato.scelto, 7)));
+// Scorrendo la settimana a destra o a sinistra si cambia settimana.
+let inizioTocco = null;
+$("settimana").addEventListener("touchstart", (e) => { inizioTocco = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
+$("settimana").addEventListener("touchend", (e) => {
+  if (!inizioTocco) return;
+  const dx = e.changedTouches[0].clientX - inizioTocco.x, dy = e.changedTouches[0].clientY - inizioTocco.y;
+  inizioTocco = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) vaiA(aggiungiGiorni(stato.scelto, dx < 0 ? 7 : -7));
+});
+// Solo microfono; la casella di testo compare unicamente se il telefono non riconosce la voce.
+if (!Riconoscimento) $("form-testo").hidden = false;
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { caricaSettimana(); caricaCose(); } });
 if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => voceItaliana();
 

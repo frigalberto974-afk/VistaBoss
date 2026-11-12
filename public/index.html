@@ -15,18 +15,11 @@
 </head>
 <body>
   <header class="testata">
-    <div class="titoli">
-      <h1>Agenda</h1>
-      <p id="mese" class="sottotitolo"></p>
-    </div>
-    <div class="navigazione">
-      <button id="settimana-prec" class="tasto-icona" aria-label="Settimana precedente">‹</button>
-      <button id="oggi" class="tasto-oggi">Oggi</button>
-      <button id="settimana-succ" class="tasto-icona" aria-label="Settimana successiva">›</button>
-    </div>
+    <h1>Assistant</h1>
+    <p id="mese" class="sottotitolo"></p>
   </header>
 
-  <section class="segretario" aria-label="Segretario">
+  <section class="segretario pannello" aria-label="Segretario">
     <canvas id="robot" class="robot" aria-label="Tocca il robottino per parlare" role="button" tabindex="0"></canvas>
     <div class="nuvola" aria-live="polite">
       <p id="detto" class="detto"></p>
@@ -42,16 +35,17 @@
   <button id="attiva-notifiche" class="banner" hidden>🔔 Attiva i promemoria sul telefono</button>
   <p id="aiuto-notifiche" class="banner-info" hidden>Per ricevere i promemoria: in Safari tocca Condividi → «Aggiungi alla schermata Home» e apri l'app dall'icona.</p>
 
-  <nav id="settimana" class="settimana" aria-label="Giorni della settimana"></nav>
-
   <main class="giornata">
-    <h2 id="titolo-giorno" class="titolo-giorno"></h2>
+    <section class="pannello">
+      <nav id="settimana" class="settimana" aria-label="Giorni della settimana (scorri per cambiare settimana)"></nav>
+      <h2 id="titolo-giorno" class="titolo-sezione"></h2>
     <ul id="elenco" class="elenco" aria-live="polite"></ul>
     <p id="vuoto" class="vuoto piccolo" hidden>Nessun appuntamento</p>
     <p id="errore-elenco" class="vuoto" hidden>Non riesco a leggere il calendario. Riprova tra poco.</p>
+    </section>
 
-    <section class="sezione-cose">
-      <h2 class="titolo-giorno">Cose da fare</h2>
+    <section class="pannello">
+      <h2 class="titolo-sezione">Cose da fare</h2>
       <ul id="cose" class="elenco-cose"></ul>
       <p id="cose-vuoto" class="vuoto piccolo" hidden>Nessuna cosa da fare</p>
     </section>
@@ -63,14 +57,10 @@
       <input id="testo" type="text" placeholder="Scrivi una richiesta" autocomplete="off" enterkeyhint="send" aria-label="Scrivi una richiesta">
       <button type="submit" class="invia" aria-label="Invia">➤</button>
     </form>
-    <div class="comandi">
-      <button id="tastiera" class="tasto-icona tasto-tastiera" aria-label="Scrivi invece di parlare">⌨︎</button>
-      <button id="microfono" class="microfono" aria-label="Parla">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
-      </button>
-      <span class="segnaposto" aria-hidden="true"></span>
-    </div>
-    <p id="stato" class="stato">Tocca e parla</p>
+    <button id="microfono" class="microfono" aria-label="Parla con l'assistente">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
+      <span id="stato" class="stato">Tocca e parla</span>
+    </button>
   </footer>
 
   <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
