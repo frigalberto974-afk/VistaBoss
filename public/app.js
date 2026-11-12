@@ -20,7 +20,6 @@ function lunediDi(g) { const d = comeData(g); const dow = (d.getUTCDay() + 6) % 
 const fmt = (opz) => new Intl.DateTimeFormat("it-IT", { timeZone: "UTC", ...opz });
 const fmtSigla = fmt({ weekday: "short" });
 const fmtGiorno = fmt({ weekday: "long", day: "numeric", month: "long" });
-const fmtMese = fmt({ month: "long", year: "numeric" });
 const ora = (s) => s.slice(11, 16);
 
 // ---- Settimana e appuntamenti ----
@@ -41,7 +40,6 @@ async function caricaSettimana() {
 
 function disegna() {
   const oggi = oggiLocale();
-  $("mese").textContent = fmtMese.format(comeData(stato.scelto));
   const nav = $("settimana");
   nav.innerHTML = "";
   for (let i = 0; i < 7; i++) {
@@ -311,6 +309,16 @@ async function attivaNotifiche() {
     mostraRisposta({ risposta: "Va bene, niente promemoria. Puoi attivarli dalle impostazioni del telefono." });
   }
 }
+
+// ---- Data e ora di oggi sotto il titolo ----
+const fmtData = new Intl.DateTimeFormat("it-IT", { timeZone: FUSO, weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const fmtOra = new Intl.DateTimeFormat("it-IT", { timeZone: FUSO, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+function aggiornaOrologio() {
+  const d = new Date();
+  $("adesso").textContent = `${fmtData.format(d)} · ${fmtOra.format(d)}`;
+}
+aggiornaOrologio();
+setInterval(aggiornaOrologio, 15_000);
 
 // ---- Avvio ----
 $("microfono").addEventListener("click", ascolta);
