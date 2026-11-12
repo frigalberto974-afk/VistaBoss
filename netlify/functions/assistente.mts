@@ -16,7 +16,7 @@ function json(dati: unknown, status = 200): Response {
 }
 
 function variabile(nome: string): string {
-  const v = Netlify.env.get(nome);
+  const v = Netlify.env.get(nome)?.trim();
   if (!v) throw new Error(`Variabile d'ambiente mancante: ${nome}`);
   return v;
 }
@@ -62,7 +62,11 @@ export default async (req: Request): Promise<Response> => {
     const storia = Array.isArray(corpo.storia) ? (corpo.storia as Scambio[]) : [];
     return json(await rispondi(corpo.testo, storia, dip));
   } catch (err) {
-    console.error(err);
+    if (err instanceof Anthropic.APIError) {
+      console.error("Errore Anthropic", err.status, err.requestID, (err.error as { error?: { type?: string } })?.error?.type);
+    } else {
+      console.error(err);
+    }
     if (err instanceof Anthropic.AuthenticationError) {
       return json({ risposta: "La chiave dell'intelligenza artificiale non è valida. Avvisa chi gestisce l'app." });
     }
