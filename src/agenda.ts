@@ -55,11 +55,14 @@ function daEventoGoogle(e: calendar_v3.Schema$Event): Appuntamento {
 export class AgendaGoogle implements Agenda {
   private api: calendar_v3.Calendar;
 
-  constructor(credenzialiJson: string, private calendarId: string) {
-    const credenziali = JSON.parse(credenzialiJson) as { client_email: string; private_key: string };
+  /**
+   * @param email client_email dell'account di servizio
+   * @param chiavePrivata private_key dell'account di servizio (PEM; "\n" letterali accettati)
+   */
+  constructor(email: string, chiavePrivata: string, private calendarId: string) {
     const client = new auth.JWT({
-      email: credenziali.client_email,
-      key: credenziali.private_key,
+      email,
+      key: chiavePrivata.replace(/\\n/g, "\n"),
       scopes: ["https://www.googleapis.com/auth/calendar.events"],
     });
     this.api = calendar({ version: "v3", auth: client });

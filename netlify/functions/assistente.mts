@@ -16,7 +16,7 @@ function json(dati: unknown, status = 200): Response {
 }
 
 function variabile(nome: string): string {
-  const v = process.env[nome];
+  const v = Netlify.env.get(nome);
   if (!v) throw new Error(`Variabile d'ambiente mancante: ${nome}`);
   return v;
 }
@@ -27,7 +27,11 @@ function prepara(): Dipendenze {
     const client = new Anthropic({ apiKey: variabile("ANTHROPIC_API_KEY"), timeout: 50_000, maxRetries: 1 });
     dipendenze = {
       modello: (params) => client.beta.messages.create(params),
-      agenda: new AgendaGoogle(variabile("GOOGLE_SERVICE_ACCOUNT_JSON"), variabile("GOOGLE_CALENDAR_ID")),
+      agenda: new AgendaGoogle(
+        variabile("GOOGLE_SA_EMAIL"),
+        variabile("GOOGLE_SA_PRIVATE_KEY"),
+        variabile("GOOGLE_CALENDAR_ID"),
+      ),
       segreto: variabile("APP_SECRET"),
     };
   }
@@ -36,7 +40,7 @@ function prepara(): Dipendenze {
 
 export default async (req: Request): Promise<Response> => {
   if (req.method !== "POST") return json({ errore: "Metodo non consentito" }, 405);
-  if (!pinValido(req.headers.get("x-pin"), process.env.APP_PIN ?? "")) {
+  if (!pinValido(req.headers.get("x-pin"), Netlify.env.get("APP_PIN") ?? "")) {
     return json({ errore: "PIN errato" }, 401);
   }
 
