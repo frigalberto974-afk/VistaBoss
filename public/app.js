@@ -182,4 +182,11 @@ $("form-pin").addEventListener("submit", (e) => {
 });
 if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => voceItaliana();
 
+// Link personale: https://…/#k=CODICE sblocca l'app senza digitare nulla.
+const daLink = new URLSearchParams(location.hash.slice(1)).get("k");
+if (daLink) {
+  salvaPin(daLink);
+  history.replaceState(null, "", location.pathname);
+}
+
 mostra(leggiPin() ? "app" : "pin");
