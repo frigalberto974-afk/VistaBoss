@@ -78,6 +78,7 @@ function disegna() {
     li.append(ore, corpo);
     ul.appendChild(li);
   }
+  $("vuoto").textContent = stato.scelto === oggi ? "Nessun appuntamento oggi" : stato.scelto === aggiungiGiorni(oggi, 1) ? "Nessun appuntamento domani" : "Nessun appuntamento";
   $("vuoto").hidden = delGiorno.length > 0 || !$("errore-elenco").hidden;
 }
 
