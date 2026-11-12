@@ -189,4 +189,4 @@ if (daLink) {
   history.replaceState(null, "", location.pathname);
 }
 
-mostra(leggiPin() ? "app" : "pin");
+mostra("app");

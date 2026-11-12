@@ -1,12 +1,12 @@
 // Endpoint unico dell'app: POST /api/assistente
 // Corpo: { testo, storia } per una nuova frase, oppure { conferma: { azione, firma } }.
-// Intestazione obbligatoria: X-Pin con il PIN del titolare.
+// Accesso senza PIN, per scelta del proprietario: chi conosce l'indirizzo può usare l'agenda.
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { Config } from "@netlify/functions";
 import { AgendaGoogle } from "../../src/agenda.js";
 import { conferma, rispondi, type Dipendenze, type Scambio } from "../../src/assistente.js";
-import { pinValido, type Azione } from "../../src/firma.js";
+import type { Azione } from "../../src/firma.js";
 
 function json(dati: unknown, status = 200): Response {
   return new Response(JSON.stringify(dati), {
@@ -40,9 +40,6 @@ function prepara(): Dipendenze {
 
 export default async (req: Request): Promise<Response> => {
   if (req.method !== "POST") return json({ errore: "Metodo non consentito" }, 405);
-  if (!pinValido(req.headers.get("x-pin"), Netlify.env.get("APP_PIN") ?? "")) {
-    return json({ errore: "PIN errato" }, 401);
-  }
 
   let corpo: { testo?: unknown; storia?: unknown; conferma?: { azione?: Azione; firma?: string } };
   try {

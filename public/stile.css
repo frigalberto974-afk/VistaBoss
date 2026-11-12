@@ -27,7 +27,8 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 20px;
-  padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  /* In basso resta spazio per il badge di Netlify, che altrimenti copre il tasto di invio. */
+  padding: max(24px, env(safe-area-inset-top)) 16px calc(72px + env(safe-area-inset-bottom));
 }
 
 .schermata[hidden] { display: none; }
