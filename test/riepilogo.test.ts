@@ -40,7 +40,7 @@ describe("notifiche", () => {
     expect(notificheDaInviare(roma("17:00"), [], [], new Set())).toEqual([]);
     expect(notificheDaInviare(roma("17:00"), [], [cosa("pagare fattura")], new Set())[0]).toMatchObject({ chiave: "cose-2026-11-13", testo: "pagare fattura" });
   });
-  it("niente riepilogo nel fine settimana", () => {
-    expect(notificheDaInviare(new Date("2026-11-14T08:05:00+01:00"), [], [], new Set())).toEqual([]);
+  it("riepilogo del mattino anche nel fine settimana", () => {
+    expect(notificheDaInviare(new Date("2026-11-14T08:05:00+01:00"), [], [], new Set()).map((n) => n.chiave)).toEqual(["mattino-2026-11-14"]);
   });
 });

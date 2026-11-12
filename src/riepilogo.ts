@@ -62,7 +62,8 @@ export function notificheDaInviare(adesso: Date, appuntamenti: Appuntamento[], c
   const aperte = cose.filter((c) => !c.fatta);
   const fuori: Notifica[] = [];
 
-  if (lavorativo && ora === MATTINO && minuto < 30) {
+  // Riepilogo del mattino: tutti i giorni, sabato e domenica compresi.
+  if (ora === MATTINO && minuto < 30) {
     const oggi = appuntamenti.filter((a) => a.inizio.slice(0, 10) === giorno);
     fuori.push({ chiave: `mattino-${giorno}`, titolo: "La tua giornata", testo: testoRiepilogo(adesso, oggi, cose) });
   }

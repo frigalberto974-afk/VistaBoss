@@ -1,5 +1,5 @@
 // Funzione pianificata: ogni 5 minuti decide e manda le notifiche push del segretario.
-// Riepilogo alle 8 (giorni lavorativi), avviso 30 minuti prima di ogni appuntamento, cose da fare alle 17.
+// Riepilogo alle 8 (tutti i giorni), avviso 30 minuti prima di ogni appuntamento, cose da fare alle 17.
 
 import { getStore } from "@netlify/blobs";
 import type { Config } from "@netlify/functions";
