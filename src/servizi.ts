@@ -12,7 +12,6 @@ export function variabile(leggi: LeggiVariabile, nome: string): string {
 }
 
 let agenda: AgendaGoogle | undefined;
-let cose: CoseBlobs | undefined;
 
 export function agendaDa(leggi: LeggiVariabile): AgendaGoogle {
   agenda ??= new AgendaGoogle(variabile(leggi, "GOOGLE_SA_EMAIL"), variabile(leggi, "GOOGLE_SA_PRIVATE_KEY"), variabile(leggi, "GOOGLE_CALENDAR_ID"));
@@ -20,8 +19,7 @@ export function agendaDa(leggi: LeggiVariabile): AgendaGoogle {
 }
 
 export function coseDa(): CoseBlobs {
-  cose ??= new CoseBlobs();
-  return cose;
+  return new CoseBlobs();
 }
 
 export function json(dati: unknown, status = 200): Response {

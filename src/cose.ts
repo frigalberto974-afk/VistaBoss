@@ -18,7 +18,11 @@ export interface ArchivioCose {
 }
 
 export class CoseBlobs implements ArchivioCose {
-  private store = getStore({ name: "cose-da-fare", consistency: "strong" });
+  // Il negozio va aperto a ogni uso: il permesso di accesso di Netlify Blobs vale per una sola
+  // invocazione e, se riusato da un'istanza "calda", scade ("Token expired").
+  private get store() {
+    return getStore({ name: "cose-da-fare", consistency: "strong" });
+  }
 
   async elenca(): Promise<Cosa[]> {
     const { blobs } = await this.store.list();
