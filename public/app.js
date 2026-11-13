@@ -1,5 +1,5 @@
 // Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js?v=20261113c";
+import { creaRobot } from "./robot.js?v=20261113d";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
@@ -108,7 +108,11 @@ function voceItaliana() {
   const voci = window.speechSynthesis ? speechSynthesis.getVoices() : [];
   return voci.find((v) => v.lang === "it-IT" && v.localService) || voci.find((v) => v.lang && v.lang.startsWith("it")) || null;
 }
+// Su iPhone la voce in uscita blocca il microfono di Safari per gli ascolti successivi (difetto WebKit):
+// lì il robot risponde solo per iscritto.
+const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 function parla(testo) {
+  if (iOS) return;
   if (!window.speechSynthesis) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(testo);
@@ -257,7 +261,9 @@ function ascolta() {
   const r = new Riconoscimento();
   r.lang = "it-IT";
   r.interimResults = true;
-  r.continuous = false;
+  r.continuous = true; // resta aperto mentre il capo parla; si chiude dopo una pausa
+  let timerPausa = null;
+  const chiudiDopoPausa = () => { clearTimeout(timerPausa); timerPausa = setTimeout(() => { try { r.stop(); } catch { /* già fermo */ } }, 1500); };
   let finale = "", ultimo = "";
   r.onresult = (e) => {
     let parziale = "";
@@ -266,6 +272,7 @@ function ascolta() {
       else parziale += e.results[i][0].transcript;
     }
     ultimo = (finale + " " + parziale).trim();
+    chiudiDopoPausa();
     $("detto").textContent = ultimo;
     $("risposta").textContent = "";
     $("conferma").hidden = true;
@@ -285,7 +292,8 @@ function ascolta() {
   const controllo = setTimeout(() => {
     if (stato.riconoscimento === r && !ultimo) { try { r.stop(); } catch { /* già fermo */ } }
   }, 8000);
-  r.addEventListener("end", () => clearTimeout(controllo));
+  const limite = setTimeout(() => { try { r.stop(); } catch { /* già fermo */ } }, 20000);
+  r.addEventListener("end", () => { clearTimeout(controllo); clearTimeout(limite); clearTimeout(timerPausa); });
   try { r.start(); } catch (err) { clearTimeout(controllo); stato.riconoscimento = null; impostaStato(""); erroreAscolto(err && err.name === "NotAllowedError" ? "not-allowed" : "sconosciuto"); }
 }
 
@@ -299,7 +307,7 @@ async function riepilogoIniziale() {
     stato.ultimaRisposta = testo;
     aggiungiStoria("assistente", testo);
     // Safari permette la voce solo dopo un tocco: offriamo il tasto "Ascolta".
-    $("ascolta-risposta").hidden = false;
+    $("ascolta-risposta").hidden = iOS;
   } catch { $("risposta").textContent = ""; }
   robot.imposta("riposo");
 }
