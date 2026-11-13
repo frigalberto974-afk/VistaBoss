@@ -1,6 +1,5 @@
-// Promemoria: segretario robot, settimana, appuntamenti del giorno, cose da fare.
+// Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
 import { creaRobot } from "./robot.js";
-import { preparaVoce, registra, vocePronta } from "./voce.js";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
@@ -176,39 +175,83 @@ async function invia(testo) {
 }
 
 // ---- Microfono ----
-// Il riconoscimento vocale gira sul telefono (Whisper): funziona anche nell'app aggiunta alla schermata Home,
-// dove quello del browser su iPhone non restituisce testo. Nessuna tastiera, nessun servizio a pagamento.
+const Riconoscimento = window.SpeechRecognition || window.webkitSpeechRecognition;
 const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-let inAscolto = false;
 
-function mostraTastiera(attiva) { $("form-testo").hidden = !attiva; }
+function mostraTastiera(attiva) {
+  $("form-testo").hidden = !attiva;
+  if (attiva) $("testo").focus();
+}
 
-async function ascolta() {
-  sbloccaVoce();
-  if (inAscolto) { registra(); return; } // secondo tocco: smette di ascoltare
-  if (stato.occupato) return;
-  if (window.speechSynthesis) speechSynthesis.cancel();
-  inAscolto = true;
+// Su iPhone, nelle app aggiunte alla schermata Home, il riconoscimento vocale del browser non funziona:
+// si usa la dettatura della tastiera (gratuita), con invio automatico quando il capo smette di parlare.
+const iPhone = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const usaDettatura = !Riconoscimento || (iPhone && standalone);
+let timerInvio = null;
+
+function avviaDettatura() {
+  mostraTastiera(true); // il focus nel tocco apre subito la tastiera
   $("detto").textContent = "";
+  $("risposta").textContent = "Tocca il microfono 🎤 della tastiera e parla. Invio da solo quando hai finito.";
   $("conferma").hidden = true;
-  impostaStato("Ti ascolto…", "ascolto");
-  let testo = "";
-  try {
-    // Quando la registrazione finisce, il tasto passa a "sto capendo" mentre il telefono trascrive.
-    testo = await registra({ quandoFinisce: () => impostaStato("Sto capendo…", "attesa") });
-  } catch (err) {
-    inAscolto = false;
+  robot.imposta("ascolto");
+}
+$("testo").addEventListener("input", () => {
+  clearTimeout(timerInvio);
+  const t = $("testo").value.trim();
+  $("detto").textContent = t;
+  if (!t) return;
+  // Invio automatico dopo 2,5 secondi senza nuove parole.
+  timerInvio = setTimeout(() => {
+    const testo = $("testo").value.trim();
+    if (!testo) return;
+    $("testo").value = "";
+    $("testo").blur();
+    mostraTastiera(false);
+    invia(testo);
+  }, 2500);
+});
+
+function ascolta() {
+  sbloccaVoce();
+  if (stato.occupato) return;
+  if (stato.riconoscimento) { stato.riconoscimento.stop(); return; }
+  if (usaDettatura) { avviaDettatura(); return; }
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  const r = new Riconoscimento();
+  r.lang = "it-IT";
+  r.interimResults = true;
+  r.continuous = false;
+  let finale = "", ultimo = "";
+  r.onresult = (e) => {
+    let parziale = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finale += e.results[i][0].transcript;
+      else parziale += e.results[i][0].transcript;
+    }
+    ultimo = (finale + " " + parziale).trim();
+    $("detto").textContent = ultimo;
+    $("risposta").textContent = "";
+    $("conferma").hidden = true;
+  };
+  r.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      mostraRisposta({ risposta: "Il microfono non è autorizzato. Consenti l'accesso al microfono nelle impostazioni di Safari, oppure scrivi." });
+      mostraTastiera(true);
+    }
+  };
+  r.onend = () => {
+    stato.riconoscimento = null;
     impostaStato("Tocca e parla");
-    const negato = err && (err.name === "NotAllowedError" || err.name === "SecurityError");
-    mostraRisposta({ risposta: negato
-      ? "Non ho il permesso di usare il microfono. Vai in Impostazioni, Promemoria o Safari, e consenti il microfono."
-      : "Non sono riuscito a capire. Riprova." });
-    return;
-  }
-  inAscolto = false;
-  impostaStato("Tocca e parla");
-  if (!testo) { mostraRisposta({ risposta: "Non ho sentito niente. Tocca e parla di nuovo." }); return; }
-  invia(testo);
+    const testo = (finale || ultimo).trim();
+    if (testo) invia(testo);
+  };
+  stato.riconoscimento = r;
+  impostaStato("Ti ascolto…", "ascolto");
+  // Se entro 6 secondi non arriva nessuna parola, si smette di ascoltare (il tasto non resta rosso).
+  const controllo = setTimeout(() => { if (stato.riconoscimento === r && !ultimo) { r.abort(); avviaDettatura(); } }, 6000);
+  r.addEventListener("end", () => clearTimeout(controllo));
+  try { r.start(); } catch { stato.riconoscimento = null; impostaStato("Tocca e parla"); avviaDettatura(); }
 }
 
 // ---- Cose da fare ----
@@ -315,6 +358,7 @@ $("ascolta-risposta").addEventListener("click", () => { sbloccaVoce(); $("ascolt
 $("attiva-notifiche").addEventListener("click", attivaNotifiche);
 $("form-testo").addEventListener("submit", (e) => {
   e.preventDefault();
+  clearTimeout(timerInvio);
   sbloccaVoce();
   const t = $("testo").value;
   $("testo").value = "";
@@ -341,14 +385,3 @@ caricaSettimana();
 caricaCose();
 riepilogoIniziale();
 preparaNotifiche();
-// Il motore vocale si prepara all'apertura (la prima volta scarica circa 80 MB, poi resta nel telefono).
-const scaricato = {};
-preparaVoce({
-  progresso: (m) => {
-    scaricato[m.file] = m;
-    const tot = Object.values(scaricato).reduce((n, x) => n + x.totale, 0);
-    const car = Object.values(scaricato).reduce((n, x) => n + x.caricato, 0);
-    if (tot > 5e6 && !vocePronta()) $("stato").textContent = `Preparo il microfono… ${Math.min(99, Math.round((car / tot) * 100))}%`;
-  },
-  pronto: () => { if (!inAscolto && !stato.occupato) $("stato").textContent = "Tocca e parla"; },
-});
