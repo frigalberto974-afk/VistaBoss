@@ -1,5 +1,5 @@
 // Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js";
+import { creaRobot } from "./robot.js?v=20261113b";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
@@ -93,7 +93,7 @@ function disegna() {
     li.append(ore, corpo, cestino);
     ul.appendChild(li);
   }
-  $("vuoto").textContent = stato.scelto === oggi ? "Nessun appuntamento oggi" : stato.scelto === aggiungiGiorni(oggi, 1) ? "Nessun appuntamento domani" : "Nessun appuntamento";
+  $("vuoto").textContent = stato.scelto === oggi ? "Nessun impegno oggi" : stato.scelto === aggiungiGiorni(oggi, 1) ? "Nessun impegno domani" : "Nessun impegno";
   $("vuoto").hidden = delGiorno.length > 0 || !$("errore-elenco").hidden;
 }
 
@@ -332,7 +332,7 @@ async function attivaNotifiche() {
   const esito = await Notification.requestPermission();
   $("attiva-notifiche").hidden = true;
   if (esito === "granted") {
-    try { await iscrivi(); mostraRisposta({ risposta: "Perfetto. Ti avviserò alle 8 con il riepilogo, mezz'ora prima di ogni appuntamento e alle 17 per le cose da fare." }); }
+    try { await iscrivi(); mostraRisposta({ risposta: "Perfetto. Ti avviserò alle 8 e mezz'ora prima di ogni impegno." }); }
     catch { mostraRisposta({ risposta: "Non sono riuscito ad attivare i promemoria. Riprova più tardi." }); }
   } else {
     mostraRisposta({ risposta: "Va bene, niente promemoria. Puoi attivarli dalle impostazioni del telefono." });

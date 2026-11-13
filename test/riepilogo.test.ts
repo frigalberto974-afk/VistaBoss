@@ -9,16 +9,16 @@ const cosa = (testo: string): Cosa => ({ id: testo, testo, creata: "2026-11-12T0
 const roma = (hhmm: string) => new Date(`2026-11-13T${hhmm}:00+01:00`);
 
 describe("riepilogo", () => {
-  it("elenca solo gli appuntamenti non ancora finiti e le cose aperte", () => {
+  it("conta solo gli impegni non ancora finiti e rimanda all'agenda", () => {
     const testo = testoRiepilogo(
       roma("09:00"),
       [app("a", "2026-11-13T08:00:00", "2026-11-13T08:30:00", "Colazione"), app("b", "2026-11-13T10:30:00", "2026-11-13T11:00:00", "Rossi", "sede")],
       [cosa("chiamare Bianchi")],
     );
-    expect(testo).toBe("Buongiorno. Oggi hai un appuntamento: alle 10 e 30 Rossi, sede. Hai una cosa da fare: chiamare Bianchi.");
+    expect(testo).toBe("Buongiorno. Oggi hai un impegno: guarda l'agenda.");
   });
   it("giornata libera", () => {
-    expect(testoRiepilogo(roma("19:00"), [], [])).toBe("Buonasera. Oggi non hai altri appuntamenti.");
+    expect(testoRiepilogo(roma("19:00"), [], [])).toBe("Buonasera. Oggi non hai altri impegni.");
   });
 });
 

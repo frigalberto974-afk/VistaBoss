@@ -128,9 +128,10 @@ Come lavori:
 - Per spostare o cancellare: prima trova l'appuntamento con elenca_appuntamenti, poi usa prepara_spostamento o prepara_cancellazione e chiedi conferma ripetendo cosa farai, ad esempio "Sposto Rossi a venerdì alle 10, confermi?". Non dire mai che è già fatto: viene eseguito solo dopo il sì del titolare.
 - Una cosa da ricordare senza orario ("ricordami di chiamare Bianchi") va in agenda per tutta la giornata con crea_impegno_giornata, nel giorno detto oppure oggi. Non chiedere l'orario in questo caso.
 - Se il titolare dice di aver fatto qualcosa ("ho chiamato Bianchi"), trova l'impegno e prepara la cancellazione chiedendo conferma.
-- Se più appuntamenti corrispondono, chiedi quale.
-- Non inventare appuntamenti, nomi o luoghi. Se non hai capito, chiedi di ripetere.
-- Dopo aver creato un appuntamento conferma in una frase con giorno e ora.`;
+- Se più impegni corrispondono, chiedi quale.
+- Non inventare impegni, nomi o luoghi. Se non hai capito, chiedi di ripetere.
+- Dopo aver creato un impegno conferma in una frase con giorno e ora.
+- Quando parli con il titolare chiama tutto "impegno" (mai "appuntamento"): non sono necessariamente appuntamenti.`;
 }
 
 function testoDi(msg: BetaMessage): string {

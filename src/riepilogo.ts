@@ -24,18 +24,12 @@ export function elencoAppuntamenti(appuntamenti: Appuntamento[]): string {
   return parti.join("; ");
 }
 
-/** Riepilogo parlato: appuntamenti rimasti di oggi e cose da fare aperte. */
-export function testoRiepilogo(adesso: Date, appuntamentiOggi: Appuntamento[], cose: Cosa[]): string {
+/** Riepilogo breve: quanti impegni restano oggi e l'invito a guardare l'agenda. */
+export function testoRiepilogo(adesso: Date, appuntamentiOggi: Appuntamento[], _cose: Cosa[] = []): string {
   const ora = istanteALocale(adesso);
-  const rimasti = appuntamentiOggi.filter((a) => a.tuttoIlGiorno || a.fine > ora);
-  const aperte = cose.filter((c) => !c.fatta);
-  const frasi = [`${saluto(adesso)}.`];
-  if (rimasti.length === 0) frasi.push("Oggi non hai altri appuntamenti.");
-  else if (rimasti.length === 1) frasi.push(`Oggi hai un appuntamento: ${elencoAppuntamenti(rimasti)}.`);
-  else frasi.push(`Oggi hai ${rimasti.length} appuntamenti: ${elencoAppuntamenti(rimasti)}.`);
-  if (aperte.length === 1) frasi.push(`Hai una cosa da fare: ${aperte[0].testo}.`);
-  else if (aperte.length > 1) frasi.push(`Hai ${aperte.length} cose da fare: ${aperte.map((c) => c.testo).join("; ")}.`);
-  return frasi.join(" ");
+  const rimasti = appuntamentiOggi.filter((a) => a.tuttoIlGiorno || a.fine > ora).length;
+  if (rimasti === 0) return `${saluto(adesso)}. Oggi non hai altri impegni.`;
+  return `${saluto(adesso)}. Oggi hai ${rimasti === 1 ? "un impegno" : `${rimasti} impegni`}: guarda l'agenda.`;
 }
 
 export interface Notifica {
