@@ -28,6 +28,8 @@ export interface Agenda {
   elenca(da: string, a: string): Promise<Appuntamento[]>;
   leggi(id: string): Promise<Appuntamento | null>;
   crea(dati: NuovoAppuntamento): Promise<Appuntamento>;
+  /** Impegno senza orario, per tutta la giornata (giorno AAAA-MM-GG). */
+  creaGiornata(titolo: string, giorno: string, note?: string): Promise<Appuntamento>;
   sposta(id: string, inizio: string, fine: string): Promise<Appuntamento>;
   cancella(id: string): Promise<void>;
 }
@@ -104,6 +106,16 @@ export class AgendaGoogle implements Agenda {
         end: { dateTime: d.fine, timeZone: FUSO },
         reminders: { useDefault: false, overrides: [{ method: "popup", minutes: d.promemoriaMinuti }] },
       },
+    });
+    return daEventoGoogle(res.data);
+  }
+
+  async creaGiornata(titolo: string, giorno: string, note?: string): Promise<Appuntamento> {
+    const [a, m, g] = giorno.split("-").map(Number);
+    const dopo = new Date(Date.UTC(a, m - 1, g + 1)).toISOString().slice(0, 10);
+    const res = await this.api.events.insert({
+      calendarId: this.calendarId,
+      requestBody: { summary: titolo, description: note, start: { date: giorno }, end: { date: dopo } },
     });
     return daEventoGoogle(res.data);
   }

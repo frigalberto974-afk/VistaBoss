@@ -34,6 +34,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--sfondo);
 }
 h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
+/* Logo: carattere diverso dal resto dell'app, giallo fluo. */
+.logo {
+  font-family: "Bungee", "Arial Black", Impact, sans-serif;
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: 1px;
+  color: #e6ff00;
+  text-shadow: 0 0 10px rgba(230, 255, 0, .55), 0 0 26px rgba(230, 255, 0, .25);
+}
 .sottotitolo { margin: 2px 0 0; color: var(--tenue); font-size: 15px; }
 .sottotitolo::first-letter { text-transform: uppercase; }
 
@@ -130,7 +139,7 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
 .giorno.scelto.con-impegni .punto { background: #fff; }
 
 /* ---- Appuntamenti ---- */
-.giornata { flex: 1; padding-bottom: 190px; }
+.giornata { flex: 1; padding-bottom: 220px; }
 .elenco { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .impegno {
   display: grid;
@@ -187,16 +196,17 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
 }
 .microfono {
   display: flex; align-items: center; justify-content: center; gap: 12px;
-  width: min(100%, 420px);
-  height: 64px;
-  border: 0; border-radius: 32px;
+  width: min(100%, 460px);
+  height: 92px;
+  border: 0; border-radius: 46px;
   background: linear-gradient(135deg, #3d8bff, #1f63d8);
   color: #fff;
   box-shadow: 0 0 0 4px rgba(47, 124, 246, .18), 0 10px 30px rgba(47, 124, 246, .45);
   transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
 }
-.microfono svg { width: 30px; height: 30px; fill: #fff; flex: none; }
-.microfono .stato { font-size: 18px; font-weight: 700; }
+.microfono svg { width: 46px; height: 46px; fill: #fff; flex: none; }
+.microfono .stato { font-size: 20px; font-weight: 700; }
+.microfono .stato:empty { display: none; }
 .microfono:active { transform: scale(.97); }
 .microfono.ascolto {
   background: linear-gradient(135deg, #ff6b70, #d63a40);

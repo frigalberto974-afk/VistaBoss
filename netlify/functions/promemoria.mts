@@ -1,11 +1,11 @@
 // Funzione pianificata: ogni 5 minuti decide e manda le notifiche push del segretario.
-// Riepilogo alle 8 (tutti i giorni), avviso 30 minuti prima di ogni appuntamento, cose da fare alle 17.
+// Riepilogo alle 8 (tutti i giorni), avviso 30 minuti prima di ogni appuntamento.
 
 import { getStore } from "@netlify/blobs";
 import type { Config } from "@netlify/functions";
 import webpush from "web-push";
 import { notificheDaInviare } from "../../src/riepilogo.js";
-import { agendaDa, coseDa, variabile } from "../../src/servizi.js";
+import { agendaDa, variabile } from "../../src/servizi.js";
 import { aggiungiMinuti, istanteALocale } from "../../src/tempo.js";
 
 export default async (): Promise<void> => {
@@ -20,7 +20,7 @@ export default async (): Promise<void> => {
   const inizio = `${istanteALocale(adesso).slice(0, 10)}T00:00:00`;
   const [appuntamenti, cose, gia] = await Promise.all([
     agendaDa(leggi).elenca(inizio, aggiungiMinuti(inizio, 24 * 60)),
-    coseDa().elenca(),
+    Promise.resolve([]),
     inviate.list(),
   ]);
   const da = notificheDaInviare(adesso, appuntamenti, cose, new Set(gia.blobs.map((b) => b.key)));

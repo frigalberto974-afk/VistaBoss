@@ -2,7 +2,7 @@
 
 import type { Config } from "@netlify/functions";
 import { testoRiepilogo } from "../../src/riepilogo.js";
-import { agendaDa, coseDa, json } from "../../src/servizi.js";
+import { agendaDa, json } from "../../src/servizi.js";
 import { aggiungiMinuti, istanteALocale } from "../../src/tempo.js";
 
 export default async (): Promise<Response> => {
@@ -11,7 +11,7 @@ export default async (): Promise<Response> => {
     const inizio = `${istanteALocale(adesso).slice(0, 10)}T00:00:00`;
     const [appuntamenti, cose] = await Promise.all([
       agendaDa((n) => Netlify.env.get(n)).elenca(inizio, aggiungiMinuti(inizio, 24 * 60)),
-      coseDa().elenca(),
+      Promise.resolve([]),
     ]);
     return json({ testo: testoRiepilogo(adesso, appuntamenti, cose) });
   } catch (err) {

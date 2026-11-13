@@ -5,7 +5,6 @@
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Agenda, Appuntamento } from "./agenda.js";
-import type { ArchivioCose } from "./cose.js";
 import { firma, verificaFirma, VALIDITA_MS, type Azione } from "./firma.js";
 import { aggiungiMinuti, descriviOrario, durataMinuti, eOrarioLocale, istanteALocale, prossimiGiorni } from "./tempo.js";
 
@@ -24,7 +23,6 @@ export type ChiamaModello = (params: BetaCreateParams) => Promise<BetaMessage>;
 export interface Dipendenze {
   modello: ChiamaModello;
   agenda: Agenda;
-  cose?: ArchivioCose;
   segreto: string;
   adesso?: () => Date;
 }
@@ -75,28 +73,16 @@ export const STRUMENTI: BetaTool[] = [
     },
   },
   {
-    name: "aggiungi_cosa_da_fare",
+    name: "crea_impegno_giornata",
     description:
-      "Aggiunge una cosa da fare SENZA orario preciso (es. 'ricordami di chiamare Bianchi'). Se il titolare indica giorno e ora, usa invece crea_appuntamento.",
+      "Segna in agenda un impegno SENZA orario per tutta la giornata (es. 'ricordami di chiamare Bianchi'). Usa il giorno detto dal titolare, altrimenti oggi.",
     input_schema: {
       type: "object",
-      properties: { testo: { type: "string", description: "Breve, all'infinito: 'chiamare Bianchi'" } },
-      required: ["testo"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "elenca_cose_da_fare",
-    description: "Elenca le cose da fare ancora aperte, con il loro id.",
-    input_schema: { type: "object", properties: {}, additionalProperties: false },
-  },
-  {
-    name: "segna_cosa_fatta",
-    description: "Segna come fatta (e toglie dalla lista) una cosa da fare. Usa l'id da elenca_cose_da_fare.",
-    input_schema: {
-      type: "object",
-      properties: { id: { type: "string" } },
-      required: ["id"],
+      properties: {
+        titolo: { type: "string", description: "Breve: 'Chiamare Bianchi'" },
+        giorno: { type: "string", description: "AAAA-MM-GG" },
+      },
+      required: ["titolo", "giorno"],
       additionalProperties: false,
     },
   },
@@ -129,7 +115,7 @@ export const STRUMENTI: BetaTool[] = [
 ];
 
 export function promptDiSistema(adesso: Date): string {
-  return `Sei il segretario personale di un titolare d'azienda: un robottino gentile, preciso e sintetico. Gestisci la sua agenda e le sue cose da fare. Parli solo italiano e dai del tu.
+  return `Sei il segretario personale di un titolare d'azienda: un robottino gentile, preciso e sintetico. Gestisci la sua agenda: ogni cosa da ricordare finisce in agenda. Parli solo italiano e dai del tu.
 Le tue risposte vengono lette ad alta voce sul telefono: frasi brevi, naturali, senza elenchi puntati, senza simboli, senza emoji, orari scritti come "alle 10" o "alle 15 e 30".
 
 Adesso sono le ${istanteALocale(adesso).slice(11, 16)} di ${prossimiGiorni(adesso, 1).replace(/^- \S+: /, "").replace(" (oggi)", "")}. Fuso orario: Europe/Rome.
@@ -140,8 +126,8 @@ Come lavori:
 - Per segnare un appuntamento usa crea_appuntamento. Se manca l'orario o il giorno, chiedilo in una frase. Se il titolare dice "mattina" senza ora, chiedi l'ora.
 - Per domande sull'agenda usa elenca_appuntamenti e rispondi in modo riassuntivo.
 - Per spostare o cancellare: prima trova l'appuntamento con elenca_appuntamenti, poi usa prepara_spostamento o prepara_cancellazione e chiedi conferma ripetendo cosa farai, ad esempio "Sposto Rossi a venerdì alle 10, confermi?". Non dire mai che è già fatto: viene eseguito solo dopo il sì del titolare.
-- "Ricordami di..." senza giorno e ora è una cosa da fare: usa aggiungi_cosa_da_fare. Con giorno e ora è un appuntamento.
-- Per "cosa devo fare", "cosa ho in sospeso" usa elenca_cose_da_fare; per "fatto", "ho chiamato Bianchi" usa segna_cosa_fatta.
+- Una cosa da ricordare senza orario ("ricordami di chiamare Bianchi") va in agenda per tutta la giornata con crea_impegno_giornata, nel giorno detto oppure oggi. Non chiedere l'orario in questo caso.
+- Se il titolare dice di aver fatto qualcosa ("ho chiamato Bianchi"), trova l'impegno e prepara la cancellazione chiedendo conferma.
 - Se più appuntamenti corrispondono, chiedi quale.
 - Non inventare appuntamenti, nomi o luoghi. Se non hai capito, chiedi di ripetere.
 - Dopo aver creato un appuntamento conferma in una frase con giorno e ora.`;
@@ -227,21 +213,12 @@ async function eseguiStrumento(nome: string, input: Record<string, unknown>, dip
       };
       return { contenuto: `Preparato, in attesa di conferma: cancellare "${esistente.titolo}".`, azione };
     }
-    case "aggiungi_cosa_da_fare": {
-      const testo = testoOpzionale(input.testo);
-      if (!testo || !dip.cose) return { contenuto: "Impossibile aggiungere.", errore: true };
-      const cosa = await dip.cose.aggiungi(testo);
-      return { contenuto: `Aggiunta: id=${cosa.id} | ${cosa.testo}` };
-    }
-    case "elenca_cose_da_fare": {
-      if (!dip.cose) return { contenuto: "Lista non disponibile.", errore: true };
-      const aperte = (await dip.cose.elenca()).filter((c) => !c.fatta);
-      return { contenuto: aperte.length ? aperte.map((c) => `id=${c.id} | ${c.testo}`).join("\n") : "Nessuna cosa da fare." };
-    }
-    case "segna_cosa_fatta": {
-      if (typeof input.id !== "string" || !dip.cose) return { contenuto: "Dati non validi.", errore: true };
-      const fatta = await dip.cose.completa(input.id);
-      return fatta ? { contenuto: `Fatta e tolta dalla lista: ${fatta.testo}` } : { contenuto: "Cosa da fare non trovata.", errore: true };
+    case "crea_impegno_giornata": {
+      const titolo = testoOpzionale(input.titolo);
+      const giorno = typeof input.giorno === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.giorno) ? input.giorno : istanteALocale(adesso).slice(0, 10);
+      if (!titolo || !eOrarioLocale(`${giorno}T00:00:00`)) return { contenuto: "Dati non validi.", errore: true };
+      const creato = await agenda.creaGiornata(titolo, giorno);
+      return { contenuto: `Creato: ${descriviPerModello(creato)}` };
     }
     default:
       return { contenuto: `Strumento sconosciuto: ${nome}`, errore: true };

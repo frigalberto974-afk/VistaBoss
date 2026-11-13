@@ -18,6 +18,11 @@ class AgendaMemoria implements Agenda {
     this.dati.set(app.id, app);
     return app;
   }
+  async creaGiornata(titolo: string, giorno: string) {
+    const app = { id: `g${this.prossimo++}`, titolo, inizio: giorno, fine: giorno, tuttoIlGiorno: true };
+    this.dati.set(app.id, app);
+    return app;
+  }
   async sposta(id: string, inizio: string, fine: string) {
     const app = { ...this.dati.get(id)!, inizio, fine };
     this.dati.set(id, app);
@@ -135,23 +140,24 @@ describe("assistente", () => {
   });
 });
 
-describe("cose da fare", () => {
-  it("aggiunge e segna fatta tramite gli strumenti", async () => {
-    const elenco: { id: string; testo: string; creata: string; fatta: boolean }[] = [];
-    const cose = {
-      async elenca() { return elenco; },
-      async aggiungi(testo: string) { const c = { id: "c1", testo, creata: "", fatta: false }; elenco.push(c); return c; },
-      async completa(id: string) { const i = elenco.findIndex((c) => c.id === id); return i < 0 ? null : { ...elenco.splice(i, 1)[0], fatta: true }; },
-    };
+describe("cose da ricordare senza orario", () => {
+  it("finiscono in agenda per tutta la giornata", async () => {
+    const agenda = new AgendaMemoria();
     const { modello } = modelloFinto([
-      [{ type: "tool_use", id: "t1", name: "aggiungi_cosa_da_fare", input: { testo: "chiamare Bianchi" } }],
-      [{ type: "text", text: "Segnato: chiamare Bianchi." }],
-      [{ type: "tool_use", id: "t2", name: "segna_cosa_fatta", input: { id: "c1" } }],
-      [{ type: "text", text: "Bene, tolto dalla lista." }],
+      [{ type: "tool_use", id: "t1", name: "crea_impegno_giornata", input: { titolo: "Chiamare Bianchi", giorno: "2026-11-12" } }],
+      [{ type: "text", text: "Segnato per oggi: chiamare Bianchi." }],
     ]);
-    await rispondi("ricordami di chiamare Bianchi", [], { modello, agenda: new AgendaMemoria(), cose, segreto, adesso });
-    expect(elenco.map((c) => c.testo)).toEqual(["chiamare Bianchi"]);
-    await rispondi("ho chiamato Bianchi", [], { modello, agenda: new AgendaMemoria(), cose, segreto, adesso });
-    expect(elenco).toEqual([]);
+    const r = await rispondi("ricordami di chiamare Bianchi", [], { modello, agenda, segreto, adesso });
+    expect(r.risposta).toContain("Bianchi");
+    expect([...agenda.dati.values()]).toEqual([{ id: "g1", titolo: "Chiamare Bianchi", inizio: "2026-11-12", fine: "2026-11-12", tuttoIlGiorno: true }]);
+  });
+  it("usa oggi se il giorno non è valido", async () => {
+    const agenda = new AgendaMemoria();
+    const { modello } = modelloFinto([
+      [{ type: "tool_use", id: "t1", name: "crea_impegno_giornata", input: { titolo: "Pagare fattura", giorno: "domani" } }],
+      [{ type: "text", text: "Segnato." }],
+    ]);
+    await rispondi("ricordami di pagare la fattura", [], { modello, agenda, segreto, adesso });
+    expect([...agenda.dati.values()][0].inizio).toBe("2026-11-12");
   });
 });

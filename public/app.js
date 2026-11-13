@@ -147,7 +147,14 @@ function mostraRisposta(dati) {
   $("risposta").textContent = testo;
   stato.ultimaRisposta = testo;
   $("ascolta-risposta").hidden = true;
-  if (/^(Fatto|Segnat|Aggiunt|Bene)/.test(testo)) robot.imposta("contento");
+  clearTimeout(stato.timerPulizia);
+  if (/^(Fatto|Segnat|Aggiunt|Bene)/.test(testo)) {
+    robot.imposta("contento");
+    // Annotato in agenda: il fumetto si svuota dopo qualche secondo.
+    stato.timerPulizia = setTimeout(() => {
+      if (!stato.occupato && !stato.inAttesa) { $("risposta").textContent = ""; $("detto").textContent = ""; $("ascolta-risposta").hidden = true; }
+    }, 4000);
+  }
   aggiungiStoria("assistente", testo);
   stato.inAttesa = dati.inAttesa || null;
   $("conferma").hidden = !stato.inAttesa;
@@ -182,12 +189,11 @@ async function invia(testo) {
       mostraRisposta(await chiama({ testo, storia }));
     }
     caricaSettimana();
-    caricaCose();
   } catch {
     mostraRisposta({ risposta: "Non riesco a collegarmi. Controlla la connessione e riprova." });
   } finally {
     stato.occupato = false;
-    impostaStato("Tocca e parla");
+    impostaStato("");
   }
 }
 
@@ -211,7 +217,7 @@ let timerInvio = null;
 function avviaDettatura() {
   mostraTastiera(true); // il focus nel tocco apre subito la tastiera
   $("detto").textContent = "";
-  $("risposta").textContent = "Tocca il microfono 🎤 della tastiera e parla. Invio da solo quando hai finito.";
+  $("risposta").textContent = "";
   $("conferma").hidden = true;
   robot.imposta("ascolto");
 }
@@ -259,7 +265,7 @@ function ascolta() {
   };
   r.onend = () => {
     stato.riconoscimento = null;
-    impostaStato("Tocca e parla");
+    impostaStato("");
     const testo = (finale || ultimo).trim();
     if (testo) { invia(testo); return; }
     if (fallito) passaAllaDettatura();
@@ -268,7 +274,7 @@ function ascolta() {
   impostaStato("Ti ascolto…", "ascolto");
   // Se entro 6 secondi non arriva nessuna parola, l'ascolto diretto non funziona su questo telefono.
   const controllo = setTimeout(() => {
-    if (stato.riconoscimento === r && !ultimo) { fallito = true; try { r.abort(); } catch { /* già fermo */ } stato.riconoscimento = null; impostaStato("Tocca e parla"); passaAllaDettatura(); }
+    if (stato.riconoscimento === r && !ultimo) { fallito = true; try { r.abort(); } catch { /* già fermo */ } stato.riconoscimento = null; impostaStato(""); passaAllaDettatura(); }
   }, 6000);
   r.addEventListener("end", () => clearTimeout(controllo));
   try { r.start(); } catch { clearTimeout(controllo); stato.riconoscimento = null; ricordaDettatura(); sbloccaVoce(); avviaDettatura(); }
@@ -279,40 +285,7 @@ function ascolta() {
 function passaAllaDettatura() {
   ricordaDettatura();
   robot.imposta("riposo");
-  $("risposta").textContent = "Su questo telefono uso la dettatura: tocca di nuovo «Tocca e parla».";
-}
-
-// ---- Cose da fare ----
-async function caricaCose() {
-  try {
-    const r = await fetch("/api/cose");
-    if (!r.ok) throw new Error(String(r.status));
-    stato.cose = (await r.json()).cose || [];
-  } catch { stato.cose = []; }
-  disegnaCose();
-}
-function disegnaCose() {
-  const ul = $("cose");
-  ul.innerHTML = "";
-  for (const c of stato.cose) {
-    const li = document.createElement("li");
-    li.className = "cosa";
-    const b = document.createElement("button");
-    b.className = "spunta";
-    b.setAttribute("aria-label", "Segna come fatta: " + c.testo);
-    b.addEventListener("click", async () => {
-      li.classList.add("fatta");
-      try { await fetch("/api/cose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ azione: "completa", id: c.id }) }); } catch { /* ricaricata sotto */ }
-      robot.imposta("contento");
-      setTimeout(caricaCose, 400);
-    });
-    const t = document.createElement("span");
-    t.className = "testo";
-    t.textContent = c.testo;
-    li.append(b, t);
-    ul.appendChild(li);
-  }
-  $("cose-vuoto").hidden = stato.cose.length > 0;
+  $("risposta").textContent = "Riprova.";
 }
 
 // ---- Riepilogo all'apertura ----
@@ -326,7 +299,7 @@ async function riepilogoIniziale() {
     aggiungiStoria("assistente", testo);
     // Safari permette la voce solo dopo un tocco: offriamo il tasto "Ascolta".
     $("ascolta-risposta").hidden = false;
-  } catch { $("risposta").textContent = "Ciao! Tocca me o il microfono e dimmi cosa ti serve."; }
+  } catch { $("risposta").textContent = ""; }
   robot.imposta("riposo");
 }
 
@@ -341,7 +314,7 @@ function base64InUint8(b64) {
 async function preparaNotifiche() {
   if (!("serviceWorker" in navigator)) return;
   try { await navigator.serviceWorker.register("/sw.js"); } catch { return; }
-  if (!pushSupportato) { $("aiuto-notifiche").hidden = standalone; return; }
+  if (!pushSupportato) return;
   if (Notification.permission === "granted") { await iscrivi(); return; }
   if (Notification.permission === "default") $("attiva-notifiche").hidden = false;
 }
@@ -403,13 +376,12 @@ $("settimana").addEventListener("touchend", (e) => {
   inizioTocco = null;
   if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) vaiA(aggiungiGiorni(stato.scelto, dx < 0 ? 7 : -7));
 });
-// Solo microfono: la casella compare quando si tocca "Tocca e parla" e serve alla dettatura.
-document.addEventListener("visibilitychange", () => { if (!document.hidden) { caricaSettimana(); caricaCose(); } });
+// Solo microfono: la casella invisibile serve alla dettatura quando il telefono non ascolta direttamente.
+document.addEventListener("visibilitychange", () => { if (!document.hidden) caricaSettimana(); });
 if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => voceItaliana();
 
 stato.scelto = oggiLocale();
 stato.lunedi = lunediDi(stato.scelto);
 caricaSettimana();
-caricaCose();
 riepilogoIniziale();
 preparaNotifiche();
