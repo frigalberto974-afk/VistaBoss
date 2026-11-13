@@ -176,21 +176,47 @@ async function invia(testo) {
 
 // ---- Microfono ----
 const Riconoscimento = window.SpeechRecognition || window.webkitSpeechRecognition;
+const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
 function mostraTastiera(attiva) {
   $("form-testo").hidden = !attiva;
   if (attiva) $("testo").focus();
 }
 
+// Su iPhone, nelle app aggiunte alla schermata Home, il riconoscimento vocale del browser non funziona:
+// si usa la dettatura della tastiera (gratuita), con invio automatico quando il capo smette di parlare.
+const iPhone = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const usaDettatura = !Riconoscimento || (iPhone && standalone);
+let timerInvio = null;
+
+function avviaDettatura() {
+  mostraTastiera(true); // il focus nel tocco apre subito la tastiera
+  $("detto").textContent = "";
+  $("risposta").textContent = "Tocca il microfono 🎤 della tastiera e parla. Invio da solo quando hai finito.";
+  $("conferma").hidden = true;
+  robot.imposta("ascolto");
+}
+$("testo").addEventListener("input", () => {
+  clearTimeout(timerInvio);
+  const t = $("testo").value.trim();
+  $("detto").textContent = t;
+  if (!t) return;
+  // Invio automatico dopo 2,5 secondi senza nuove parole.
+  timerInvio = setTimeout(() => {
+    const testo = $("testo").value.trim();
+    if (!testo) return;
+    $("testo").value = "";
+    $("testo").blur();
+    mostraTastiera(false);
+    invia(testo);
+  }, 2500);
+});
+
 function ascolta() {
   sbloccaVoce();
   if (stato.occupato) return;
   if (stato.riconoscimento) { stato.riconoscimento.stop(); return; }
-  if (!Riconoscimento) {
-    mostraTastiera(true);
-    $("risposta").textContent = "Questo telefono non mi permette di ascoltare direttamente: tocca il microfono della tastiera e detta.";
-    return;
-  }
+  if (usaDettatura) { avviaDettatura(); return; }
   if (window.speechSynthesis) speechSynthesis.cancel();
   const r = new Riconoscimento();
   r.lang = "it-IT";
@@ -222,7 +248,10 @@ function ascolta() {
   };
   stato.riconoscimento = r;
   impostaStato("Ti ascolto…", "ascolto");
-  r.start();
+  // Se entro 6 secondi non arriva nessuna parola, si smette di ascoltare (il tasto non resta rosso).
+  const controllo = setTimeout(() => { if (stato.riconoscimento === r && !ultimo) { r.abort(); avviaDettatura(); } }, 6000);
+  r.addEventListener("end", () => clearTimeout(controllo));
+  try { r.start(); } catch { stato.riconoscimento = null; impostaStato("Tocca e parla"); avviaDettatura(); }
 }
 
 // ---- Cose da fare ----
@@ -274,7 +303,6 @@ async function riepilogoIniziale() {
 }
 
 // ---- Notifiche push ----
-const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 const pushSupportato = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 
 function base64InUint8(b64) {
@@ -330,10 +358,12 @@ $("ascolta-risposta").addEventListener("click", () => { sbloccaVoce(); $("ascolt
 $("attiva-notifiche").addEventListener("click", attivaNotifiche);
 $("form-testo").addEventListener("submit", (e) => {
   e.preventDefault();
+  clearTimeout(timerInvio);
   sbloccaVoce();
   const t = $("testo").value;
   $("testo").value = "";
   $("testo").blur();
+  mostraTastiera(false);
   invia(t);
 });
 // Scorrendo la settimana a destra o a sinistra si cambia settimana.
@@ -345,8 +375,7 @@ $("settimana").addEventListener("touchend", (e) => {
   inizioTocco = null;
   if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) vaiA(aggiungiGiorni(stato.scelto, dx < 0 ? 7 : -7));
 });
-// Solo microfono; la casella di testo compare unicamente se il telefono non riconosce la voce.
-if (!Riconoscimento) $("form-testo").hidden = false;
+// Solo microfono: la casella compare quando si tocca "Tocca e parla" e serve alla dettatura.
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { caricaSettimana(); caricaCose(); } });
 if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => voceItaliana();
 
