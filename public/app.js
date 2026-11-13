@@ -234,7 +234,8 @@ $("testo").addEventListener("input", () => {
 function ascolta() {
   if (stato.occupato) return;
   if (stato.riconoscimento) { stato.riconoscimento.stop(); return; }
-  if (!Riconoscimento || dettaturaRicordata()) { sbloccaVoce(); avviaDettatura(); return; }
+  // App installata sulla Home (iPhone): l'ascolto diretto non funziona, si usa subito la dettatura.
+  if (!Riconoscimento || standalone || dettaturaRicordata()) { sbloccaVoce(); avviaDettatura(); return; }
   const r = new Riconoscimento();
   r.lang = "it-IT";
   r.interimResults = true;
