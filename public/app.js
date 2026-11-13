@@ -1,6 +1,6 @@
 // Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js?v=20261113e";
-import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261113e";
+import { creaRobot } from "./robot.js?v=20261113f";
+import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261113f";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
@@ -353,12 +353,15 @@ function base64InUint8(b64) {
   const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
+function aggiornaCampanella() {
+  const attive = pushSupportato && Notification.permission === "granted";
+  $("campanella").classList.toggle("attiva", attive);
+}
 async function preparaNotifiche() {
+  aggiornaCampanella();
   if (!("serviceWorker" in navigator)) return;
   try { await navigator.serviceWorker.register("/sw.js"); } catch { return; }
-  if (!pushSupportato) return;
-  if (Notification.permission === "granted") { await iscrivi(); return; }
-  if (Notification.permission === "default") $("attiva-notifiche").hidden = false;
+  if (pushSupportato && Notification.permission === "granted") { try { await iscrivi(); } catch { /* si riprova dalla campanella */ } }
 }
 async function iscrivi() {
   const reg = await navigator.serviceWorker.ready;
@@ -369,15 +372,24 @@ async function iscrivi() {
   }
   await fetch("/api/iscrizione", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(iscr) });
 }
+// Campanella: attiva le notifiche (o conferma che sono attive).
 async function attivaNotifiche() {
-  sbloccaVoce();
-  const esito = await Notification.requestPermission();
-  $("attiva-notifiche").hidden = true;
-  if (esito === "granted") {
-    try { await iscrivi(); mostraRisposta({ risposta: "Perfetto. Ti avviserò alle 8 e mezz'ora prima di ogni impegno." }); }
-    catch { mostraRisposta({ risposta: "Non sono riuscito ad attivare i promemoria. Riprova più tardi." }); }
-  } else {
-    mostraRisposta({ risposta: "Va bene, niente promemoria. Puoi attivarli dalle impostazioni del telefono." });
+  if (!pushSupportato) {
+    mostraRisposta({ risposta: "Le notifiche funzionano solo aprendo Promemoria dall'icona sulla schermata Home." });
+    return;
+  }
+  if (Notification.permission === "denied") {
+    mostraRisposta({ risposta: "Le notifiche sono bloccate: Impostazioni, Notifiche, Promemoria, Consenti notifiche." });
+    return;
+  }
+  const esito = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+  aggiornaCampanella();
+  if (esito !== "granted") { mostraRisposta({ risposta: "Notifiche non attivate." }); return; }
+  try {
+    await iscrivi();
+    mostraRisposta({ risposta: "Notifiche attive: ti avviso alle 8 e mezz'ora prima di ogni impegno." });
+  } catch {
+    mostraRisposta({ risposta: "Non sono riuscito ad attivare le notifiche. Riprova." });
   }
 }
 
@@ -398,7 +410,7 @@ $("no").addEventListener("click", () => { sbloccaVoce(); invia("no"); });
 $("robot").addEventListener("click", ascolta);
 $("robot").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ascolta(); } });
 $("ascolta-risposta").addEventListener("click", () => { sbloccaVoce(); $("ascolta-risposta").hidden = true; parla(stato.ultimaRisposta); });
-$("attiva-notifiche").addEventListener("click", attivaNotifiche);
+$("campanella").addEventListener("click", attivaNotifiche);
 $("form-testo").addEventListener("submit", (e) => {
   e.preventDefault();
   clearTimeout(timerInvio);

@@ -34,6 +34,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--sfondo);
 }
 h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
+.riga-testata { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.campanella {
+  flex: none;
+  width: 48px; height: 48px;
+  display: grid; place-items: center;
+  border: 1px solid var(--bordo-forte); border-radius: 14px;
+  background: var(--pannello);
+}
+.campanella svg { width: 26px; height: 26px; fill: var(--tenue); }
+.campanella.attiva { border-color: rgba(230, 255, 0, .6); }
+.campanella.attiva svg { fill: #e6ff00; }
 /* Logo: carattere diverso dal resto dell'app, giallo fluo. */
 .logo {
   font-family: "Bungee", "Arial Black", Impact, sans-serif;

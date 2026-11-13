@@ -14,11 +14,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=swap">
-  <link rel="stylesheet" href="stile.css?v=20261113e">
+  <link rel="stylesheet" href="stile.css?v=20261113f">
 </head>
 <body>
   <header class="testata">
-    <h1 class="logo">Promemoria</h1>
+    <div class="riga-testata">
+      <h1 class="logo">Promemoria</h1>
+      <button id="campanella" class="campanella" aria-label="Notifiche">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
+      </button>
+    </div>
     <p id="adesso" class="sottotitolo"></p>
   </header>
 
@@ -35,7 +40,6 @@
     </div>
   </section>
 
-  <button id="attiva-notifiche" class="banner" hidden>🔔 Attiva i promemoria sul telefono</button>
 
   <main class="giornata">
     <section class="pannello">
@@ -61,6 +65,6 @@
   </footer>
 
   <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
-  <script type="module" src="app.js?v=20261113e"></script>
+  <script type="module" src="app.js?v=20261113f"></script>
 </body>
 </html>
