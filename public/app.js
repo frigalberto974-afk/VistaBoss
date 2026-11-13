@@ -1,6 +1,6 @@
 // Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js?v=20261113f";
-import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261113f";
+import { creaRobot } from "./robot.js?v=20261113g";
+import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261113g";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";

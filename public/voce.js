@@ -54,14 +54,35 @@ async function a16k(campioni, frequenza) {
 
 let registrazione = null;
 
+// Il microfono viene chiesto al telefono una sola volta e riusato finché l'app resta aperta:
+// chiederlo a ogni tocco fa ripetere all'iPhone la domanda del permesso.
+let microfono = null; // { stream, ctx }
+async function apriMicrofono() {
+  if (microfono && microfono.stream.getAudioTracks().some((t) => t.readyState === "live")) {
+    await microfono.ctx.resume();
+    return microfono;
+  }
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } });
+  await ctx.resume();
+  microfono = { stream, ctx };
+  return microfono;
+}
+// Quando l'app va in secondo piano il microfono si rilascia (si spegne il pallino arancione).
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && microfono && !registrazione) {
+    microfono.stream.getTracks().forEach((t) => t.stop());
+    microfono.ctx.close().catch(() => {});
+    microfono = null;
+  }
+});
+
 /** Avvia l'ascolto. Va chiamata direttamente dal tocco dell'utente. Restituisce il testo trascritto. */
 export function registra({ quandoParla, quandoFinisce } = {}) {
   if (registrazione) { registrazione.ferma(); return registrazione.promessa; }
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
   let ferma;
   const promessa = (async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } });
-    await ctx.resume();
+    const { stream, ctx } = await apriMicrofono();
     const sorgente = ctx.createMediaStreamSource(stream);
     const proc = ctx.createScriptProcessor(4096, 1, 1);
     const pezzi = [];
@@ -84,16 +105,13 @@ export function registra({ quandoParla, quandoFinisce } = {}) {
     });
     proc.disconnect();
     sorgente.disconnect();
-    stream.getTracks().forEach((t) => t.stop());
     const tot = pezzi.reduce((n, p) => n + p.length, 0);
     const tutto = new Float32Array(tot);
     let o = 0;
     for (const p of pezzi) { tutto.set(p, o); o += p.length; }
-    const frequenza = ctx.sampleRate;
-    await ctx.close();
     if (!parlato) return "";
     quandoFinisce?.();
-    return trascrivi(await a16k(tutto, frequenza));
+    return trascrivi(await a16k(tutto, ctx.sampleRate));
   })();
   registrazione = { promessa, ferma: () => ferma?.() };
   promessa.finally(() => { registrazione = null; }).catch(() => {});
