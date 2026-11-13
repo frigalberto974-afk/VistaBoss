@@ -73,7 +73,24 @@ function disegna() {
     const corpo = document.createElement("div");
     const t = document.createElement("p"); t.className = "titolo"; t.textContent = x.titolo; corpo.appendChild(t);
     if (x.luogo) { const l = document.createElement("p"); l.className = "luogo"; l.textContent = "📍 " + x.luogo; corpo.appendChild(l); }
-    li.append(ore, corpo);
+    const cestino = document.createElement("button");
+    cestino.className = "cestino";
+    cestino.setAttribute("aria-label", "Cancella " + x.titolo);
+    cestino.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-1 12H7L6 9Zm4 2v8h2v-8h-2Zm4 0v8h2v-8h-2Z"/></svg>';
+    cestino.addEventListener("click", async () => {
+      sbloccaVoce();
+      if (!confirm(`Cancellare «${x.titolo}»?`)) return;
+      li.classList.add("passato");
+      try {
+        const r = await fetch(`/api/agenda?id=${encodeURIComponent(x.id)}`, { method: "DELETE" });
+        if (!r.ok) throw new Error(String(r.status));
+        robot.imposta("contento");
+      } catch {
+        mostraRisposta({ risposta: "Non sono riuscito a cancellarlo. Riprova." });
+      }
+      caricaSettimana();
+    });
+    li.append(ore, corpo, cestino);
     ul.appendChild(li);
   }
   $("vuoto").textContent = stato.scelto === oggi ? "Nessun appuntamento oggi" : stato.scelto === aggiungiGiorni(oggi, 1) ? "Nessun appuntamento domani" : "Nessun appuntamento";
@@ -183,10 +200,12 @@ function mostraTastiera(attiva) {
   if (attiva) $("testo").focus();
 }
 
-// Su iPhone, nelle app aggiunte alla schermata Home, il riconoscimento vocale del browser non funziona:
-// si usa la dettatura della tastiera (gratuita), con invio automatico quando il capo smette di parlare.
-const iPhone = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-const usaDettatura = !Riconoscimento || (iPhone && standalone);
+// Prima si prova l'ascolto diretto (un solo tocco). Se su questo telefono non restituisce parole,
+// lo si ricorda e dal tocco successivo si usa la dettatura della tastiera (gratuita).
+// Nota iPhone: nessun suono deve partire subito prima dell'ascolto, altrimenti iOS lo blocca.
+const CHIAVE_DETTATURA = "promemoria.dettatura";
+function dettaturaRicordata() { try { return localStorage.getItem(CHIAVE_DETTATURA) === "1"; } catch { return false; } }
+function ricordaDettatura() { try { localStorage.setItem(CHIAVE_DETTATURA, "1"); } catch { /* memoria non disponibile */ } }
 let timerInvio = null;
 
 function avviaDettatura() {
@@ -213,11 +232,9 @@ $("testo").addEventListener("input", () => {
 });
 
 function ascolta() {
-  sbloccaVoce();
   if (stato.occupato) return;
   if (stato.riconoscimento) { stato.riconoscimento.stop(); return; }
-  if (usaDettatura) { avviaDettatura(); return; }
-  if (window.speechSynthesis) speechSynthesis.cancel();
+  if (!Riconoscimento || dettaturaRicordata()) { sbloccaVoce(); avviaDettatura(); return; }
   const r = new Riconoscimento();
   r.lang = "it-IT";
   r.interimResults = true;
@@ -234,24 +251,34 @@ function ascolta() {
     $("risposta").textContent = "";
     $("conferma").hidden = true;
   };
+  let fallito = false;
   r.onerror = (e) => {
-    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-      mostraRisposta({ risposta: "Il microfono non è autorizzato. Consenti l'accesso al microfono nelle impostazioni di Safari, oppure scrivi." });
-      mostraTastiera(true);
-    }
+    if (e.error === "no-speech" || e.error === "aborted") return;
+    fallito = true;
   };
   r.onend = () => {
     stato.riconoscimento = null;
     impostaStato("Tocca e parla");
     const testo = (finale || ultimo).trim();
-    if (testo) invia(testo);
+    if (testo) { invia(testo); return; }
+    if (fallito) passaAllaDettatura();
   };
   stato.riconoscimento = r;
   impostaStato("Ti ascolto…", "ascolto");
-  // Se entro 6 secondi non arriva nessuna parola, si smette di ascoltare (il tasto non resta rosso).
-  const controllo = setTimeout(() => { if (stato.riconoscimento === r && !ultimo) { r.abort(); avviaDettatura(); } }, 6000);
+  // Se entro 6 secondi non arriva nessuna parola, l'ascolto diretto non funziona su questo telefono.
+  const controllo = setTimeout(() => {
+    if (stato.riconoscimento === r && !ultimo) { fallito = true; try { r.abort(); } catch { /* già fermo */ } stato.riconoscimento = null; impostaStato("Tocca e parla"); passaAllaDettatura(); }
+  }, 6000);
   r.addEventListener("end", () => clearTimeout(controllo));
-  try { r.start(); } catch { stato.riconoscimento = null; impostaStato("Tocca e parla"); avviaDettatura(); }
+  try { r.start(); } catch { clearTimeout(controllo); stato.riconoscimento = null; ricordaDettatura(); sbloccaVoce(); avviaDettatura(); }
+}
+
+// La tastiera può aprirsi solo durante un tocco: si chiede di toccare ancora una volta,
+// e da lì in poi questo telefono usa sempre la dettatura.
+function passaAllaDettatura() {
+  ricordaDettatura();
+  robot.imposta("riposo");
+  $("risposta").textContent = "Su questo telefono uso la dettatura: tocca di nuovo «Tocca e parla».";
 }
 
 // ---- Cose da fare ----

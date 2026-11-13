@@ -134,9 +134,10 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
 .elenco { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .impegno {
   display: grid;
-  grid-template-columns: 62px 1fr;
+  grid-template-columns: 62px 1fr 40px;
+  align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 12px 10px 12px 14px;
   border-radius: 14px;
   background: var(--superficie);
   border: 1px solid var(--bordo);
@@ -148,6 +149,14 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
 .impegno .titolo { font-size: 17px; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
 .impegno .luogo { font-size: 14px; color: var(--tenue); margin: 4px 0 0; overflow-wrap: anywhere; }
 .impegno.passato { opacity: .5; }
+.cestino {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border: 1px solid var(--bordo-forte); border-radius: 12px;
+  background: transparent;
+}
+.cestino svg { width: 20px; height: 20px; fill: #ff8a8f; }
+.cestino:active { background: rgba(229, 72, 77, .18); }
 .vuoto { color: var(--tenue); margin: 4px 0; font-size: 15px; }
 .vuoto[hidden] { display: none; }
 
