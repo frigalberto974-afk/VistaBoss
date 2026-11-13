@@ -1,5 +1,5 @@
 // Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js?v=20261113b";
+import { creaRobot } from "./robot.js?v=20261113c";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
@@ -210,8 +210,20 @@ function mostraTastiera(attiva) {
 // lo si ricorda e dal tocco successivo si usa la dettatura della tastiera (gratuita).
 // Nota iPhone: nessun suono deve partire subito prima dell'ascolto, altrimenti iOS lo blocca.
 const CHIAVE_DETTATURA = "promemoria.dettatura";
-function dettaturaRicordata() { try { return localStorage.getItem(CHIAVE_DETTATURA) === "1"; } catch { return false; } }
-function ricordaDettatura() { try { localStorage.setItem(CHIAVE_DETTATURA, "1"); } catch { /* memoria non disponibile */ } }
+// Non si ricorda più nessun errore: in Safari si prova sempre ad ascoltare. Si cancella quanto salvato prima.
+try { localStorage.removeItem(CHIAVE_DETTATURA); } catch { /* memoria non disponibile */ }
+
+const MOTIVI = {
+  "not-allowed": "Il microfono non è autorizzato per Safari.",
+  "service-not-allowed": "Il riconoscimento vocale non è autorizzato su questo telefono.",
+  "audio-capture": "Non riesco a usare il microfono: forse è occupato da un'altra app.",
+  network: "Serve la connessione a internet per capirti.",
+  "no-speech": "Non ti ho sentito.",
+};
+function erroreAscolto(codice) {
+  robot.imposta("riposo");
+  $("risposta").textContent = (MOTIVI[codice] || "Non ti ho sentito.") + " Riprova.";
+}
 let timerInvio = null;
 
 function avviaDettatura() {
@@ -241,7 +253,7 @@ function ascolta() {
   if (stato.occupato) return;
   if (stato.riconoscimento) { stato.riconoscimento.stop(); return; }
   // App installata sulla Home (iPhone): l'ascolto diretto non funziona, si usa subito la dettatura.
-  if (!Riconoscimento || standalone || dettaturaRicordata()) { sbloccaVoce(); avviaDettatura(); return; }
+  if (!Riconoscimento || standalone) { sbloccaVoce(); avviaDettatura(); return; }
   const r = new Riconoscimento();
   r.lang = "it-IT";
   r.interimResults = true;
@@ -258,34 +270,23 @@ function ascolta() {
     $("risposta").textContent = "";
     $("conferma").hidden = true;
   };
-  let fallito = false;
-  r.onerror = (e) => {
-    if (e.error === "no-speech" || e.error === "aborted") return;
-    fallito = true;
-  };
+  let codiceErrore = "";
+  r.onerror = (e) => { if (e.error !== "aborted") codiceErrore = e.error || "sconosciuto"; };
   r.onend = () => {
     stato.riconoscimento = null;
     impostaStato("");
     const testo = (finale || ultimo).trim();
     if (testo) { invia(testo); return; }
-    if (fallito) passaAllaDettatura();
+    erroreAscolto(codiceErrore || "no-speech");
   };
   stato.riconoscimento = r;
   impostaStato("Ti ascolto…", "ascolto");
-  // Se entro 6 secondi non arriva nessuna parola, l'ascolto diretto non funziona su questo telefono.
+  // Se entro 8 secondi non arriva nessuna parola, si smette di ascoltare: il tasto non resta rosso.
   const controllo = setTimeout(() => {
-    if (stato.riconoscimento === r && !ultimo) { fallito = true; try { r.abort(); } catch { /* già fermo */ } stato.riconoscimento = null; impostaStato(""); passaAllaDettatura(); }
-  }, 6000);
+    if (stato.riconoscimento === r && !ultimo) { try { r.stop(); } catch { /* già fermo */ } }
+  }, 8000);
   r.addEventListener("end", () => clearTimeout(controllo));
-  try { r.start(); } catch { clearTimeout(controllo); stato.riconoscimento = null; ricordaDettatura(); sbloccaVoce(); avviaDettatura(); }
-}
-
-// La tastiera può aprirsi solo durante un tocco: si chiede di toccare ancora una volta,
-// e da lì in poi questo telefono usa sempre la dettatura.
-function passaAllaDettatura() {
-  ricordaDettatura();
-  robot.imposta("riposo");
-  $("risposta").textContent = "Riprova.";
+  try { r.start(); } catch (err) { clearTimeout(controllo); stato.riconoscimento = null; impostaStato(""); erroreAscolto(err && err.name === "NotAllowedError" ? "not-allowed" : "sconosciuto"); }
 }
 
 // ---- Riepilogo all'apertura ----
