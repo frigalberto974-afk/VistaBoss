@@ -1,5 +1,6 @@
 // Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js?v=20261113d";
+import { creaRobot } from "./robot.js?v=20261113e";
+import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261113e";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
@@ -253,7 +254,39 @@ $("testo").addEventListener("input", () => {
   }, 2500);
 });
 
+// Indirizzo di prova: si mostra solo cosa è stato capito, senza segnare niente in agenda.
+const modoProva = location.hostname.includes("--");
+let inAscoltoTelefono = false;
+
+// iPhone: il riconoscimento vocale di Safari non restituisce parole, quindi la voce viene
+// registrata e trascritta sul telefono (Whisper). Un solo tocco, gratis.
+async function ascoltaSulTelefono() {
+  if (inAscoltoTelefono) { registra(); return; } // secondo tocco: smette di ascoltare
+  if (stato.occupato) return;
+  if (!vocePronta()) { $("risposta").textContent = "Un momento, sto preparando il microfono."; return; }
+  inAscoltoTelefono = true;
+  $("detto").textContent = "";
+  $("conferma").hidden = true;
+  impostaStato("Ti ascolto…", "ascolto");
+  let testo = "";
+  try {
+    testo = await registra({ quandoFinisce: () => impostaStato("Sto capendo…", "attesa") });
+  } catch (err) {
+    inAscoltoTelefono = false;
+    impostaStato("");
+    const negato = err && (err.name === "NotAllowedError" || err.name === "SecurityError");
+    erroreAscolto(negato ? "not-allowed" : "sconosciuto");
+    return;
+  }
+  inAscoltoTelefono = false;
+  impostaStato("");
+  if (!testo) { erroreAscolto("no-speech"); return; }
+  if (modoProva) { $("detto").textContent = ""; $("risposta").textContent = `Ho capito: «${testo}»`; robot.imposta("contento"); return; }
+  invia(testo);
+}
+
 function ascolta() {
+  if (iOS) { ascoltaSulTelefono(); return; }
   if (stato.occupato) return;
   if (stato.riconoscimento) { stato.riconoscimento.stop(); return; }
   // App installata sulla Home (iPhone): l'ascolto diretto non funziona, si usa subito la dettatura.
@@ -394,3 +427,17 @@ stato.lunedi = lunediDi(stato.scelto);
 caricaSettimana();
 riepilogoIniziale();
 preparaNotifiche();
+if (iOS) {
+  // Il motore vocale si prepara all'apertura: la prima volta si scarica, poi resta nel telefono.
+  const scaricato = {};
+  impostaStato("Preparo il microfono…", "attesa");
+  preparaVoce({
+    progresso: (m) => {
+      scaricato[m.file] = m;
+      const tot = Object.values(scaricato).reduce((n, x) => n + x.totale, 0);
+      const car = Object.values(scaricato).reduce((n, x) => n + x.caricato, 0);
+      if (tot > 0 && !vocePronta()) $("stato").textContent = `Preparo il microfono… ${Math.min(99, Math.round((car / tot) * 100))}%`;
+    },
+    pronto: () => { if (!inAscoltoTelefono && !stato.occupato) impostaStato(""); },
+  });
+}
