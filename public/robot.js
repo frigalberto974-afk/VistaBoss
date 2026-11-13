@@ -1,4 +1,4 @@
-// Il segretario: robottino 3D con viso su schermo (occhi e bocca animati).
+// Il segretario: testa di robottino 3D con viso su schermo (occhi e bocca animati).
 // Stati: "riposo", "ascolto", "pensa", "parla", "contento".
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "./vendor/RoundedBoxGeometry.js";
@@ -12,8 +12,9 @@ export function creaRobot(canvas) {
 
   const scena = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-  camera.position.set(0, 0.35, 6.2);
-  camera.lookAt(0, 0.1, 0);
+  // Solo la testa: inquadratura stretta.
+  camera.position.set(0, 0.45, 4.4);
+  camera.lookAt(0, 0.4, 0);
 
   scena.add(new THREE.HemisphereLight(0xdfe9ff, 0x20242c, 1.4));
   const sole = new THREE.DirectionalLight(0xffffff, 2.2);
@@ -25,31 +26,15 @@ export function creaRobot(canvas) {
 
   const bianco = new THREE.MeshStandardMaterial({ color: 0xf1f4f8, roughness: 0.35, metalness: 0.1 });
   const blu = new THREE.MeshStandardMaterial({ color: 0x2f7cf6, roughness: 0.4, metalness: 0.2 });
+  // (corpo rimosso: si mostra solo la testa)
   const scuro = new THREE.MeshStandardMaterial({ color: 0x0b0e14, roughness: 0.15, metalness: 0.3 });
 
   const robot = new THREE.Group();
   scena.add(robot);
 
-  // Corpo
-  const corpo = new THREE.Mesh(new RoundedBoxGeometry(1.25, 0.95, 0.85, 6, 0.32), bianco);
-  corpo.position.y = -1.05;
-  robot.add(corpo);
-  const luceTorace = new THREE.Mesh(
-    new THREE.CircleGeometry(0.12, 32),
-    new THREE.MeshStandardMaterial({ color: 0x000000, emissive: new THREE.Color(COLORE.riposo), emissiveIntensity: 1.6 }),
-  );
-  luceTorace.position.set(0, -0.98, 0.431);
-  robot.add(luceTorace);
-  for (const lato of [-1, 1]) {
-    const braccio = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.45, 6, 16), blu);
-    braccio.position.set(lato * 0.78, -1.05, 0);
-    braccio.rotation.z = lato * 0.25;
-    robot.add(braccio);
-  }
-
   // Testa
   const testa = new THREE.Group();
-  testa.position.y = 0.25;
+  testa.position.y = 0.2;
   robot.add(testa);
   testa.add(new THREE.Mesh(new RoundedBoxGeometry(1.7, 1.3, 1.15, 8, 0.42), bianco));
   const schermo = new THREE.Mesh(new RoundedBoxGeometry(1.36, 0.92, 0.1, 6, 0.2), scuro);
@@ -187,7 +172,6 @@ export function creaRobot(canvas) {
     const pulsazione = stato === "ascolto" ? 1.4 + Math.sin(t * 8) * 0.9 : stato === "pensa" ? 1.4 + Math.sin(t * 12) * 0.8 : 1.8;
     pallina.material.emissive.copy(colore);
     pallina.material.emissiveIntensity = pulsazione;
-    luceTorace.material.emissive.copy(colore);
 
     disegnaViso(t);
     renderer.render(scena, camera);

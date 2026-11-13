@@ -56,22 +56,22 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
 /* ---- Segretario ---- */
 .segretario {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 84px 1fr;
   align-items: center;
   gap: 12px;
 }
-.robot { width: 120px; height: 140px; display: block; cursor: pointer; touch-action: manipulation; }
+.robot { width: 84px; height: 84px; display: block; cursor: pointer; touch-action: manipulation; align-self: start; }
 .nuvola {
   position: relative;
-  min-height: 84px;
-  padding: 12px 14px;
+  min-height: 64px;
+  padding: 10px 12px;
   border-radius: 16px;
   background: var(--superficie);
   border: 1px solid var(--bordo-forte);
 }
 .nuvola::before {
   content: "";
-  position: absolute; left: -8px; top: 34px;
+  position: absolute; left: -8px; top: 26px;
   width: 14px; height: 14px;
   background: var(--superficie);
   border-left: 1px solid var(--bordo-forte); border-bottom: 1px solid var(--bordo-forte);
@@ -79,7 +79,7 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
 }
 .detto { margin: 0 0 6px; color: var(--accento-chiaro); font-size: 14px; font-style: italic; }
 .detto:empty { display: none; }
-.risposta { margin: 0; font-size: 16px; line-height: 1.4; max-height: 9.8em; overflow-y: auto; }
+.risposta { margin: 0; font-size: 16px; line-height: 1.4; max-height: 7em; overflow-y: auto; }
 .conferma { display: flex; gap: 8px; margin-top: 10px; }
 .conferma[hidden] { display: none; }
 .pulsante { flex: 1; padding: 11px; border: 0; border-radius: 12px; font-size: 16px; font-weight: 600; color: #fff; }

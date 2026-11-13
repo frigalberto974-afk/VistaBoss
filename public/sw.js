@@ -3,10 +3,10 @@ self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (evento) => {
-  let dati = { titolo: "Agenda", testo: "" };
+  let dati = { titolo: "Promemoria", testo: "" };
   try { dati = evento.data.json(); } catch { if (evento.data) dati.testo = evento.data.text(); }
   evento.waitUntil(
-    self.registration.showNotification(dati.titolo || "Agenda", {
+    self.registration.showNotification(dati.titolo || "Promemoria", {
       body: dati.testo || "",
       icon: "/icona-180.png",
       badge: "/icona-180.png",
