@@ -199,12 +199,17 @@ h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.3px; }
   50% { box-shadow: 0 0 0 14px rgba(229, 72, 77, 0); }
 }
 
-/* Ripiego solo se il telefono non supporta il riconoscimento vocale. */
-.form-testo { display: flex; gap: 8px; width: min(100%, 420px); margin-bottom: 10px; }
+/* Casella invisibile: serve solo a ricevere la dettatura della tastiera dell'iPhone.
+   Non può essere nascosta con display:none, altrimenti la tastiera non si apre. */
+.form-testo {
+  position: absolute; left: 0; bottom: 0;
+  width: 1px; height: 1px;
+  opacity: 0; overflow: hidden; pointer-events: none;
+}
 .form-testo[hidden] { display: none; }
 .form-testo input {
-  flex: 1; min-width: 0;
-  font-size: 17px;
+  width: 1px;
+  font-size: 16px; /* sotto i 16px Safari ingrandisce la pagina */
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--bordo-forte);
