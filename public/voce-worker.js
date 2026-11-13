@@ -6,7 +6,7 @@ env.allowLocalModels = false;
 env.backends.onnx.wasm.wasmPaths = new URL("./vendor/transformers/", self.location.href).href;
 env.backends.onnx.wasm.numThreads = 1;
 
-const MODELLO = "onnx-community/whisper-small";
+const MODELLO = "onnx-community/whisper-base";
 let asr = null;
 
 async function carica() {

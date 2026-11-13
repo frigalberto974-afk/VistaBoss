@@ -7,6 +7,11 @@ let prossimoId = 1;
 const ascoltatori = { progresso: () => {}, pronto: () => {} };
 let pronto = false;
 
+// Se il worker si blocca o va in errore, nessuna richiesta resta appesa.
+worker.onerror = (e) => {
+  for (const [id, p] of attese) { attese.delete(id); p.rifiuta(new Error(e.message || "errore motore vocale")); }
+};
+
 worker.onmessage = (e) => {
   const m = e.data;
   if (m.tipo === "progresso") ascoltatori.progresso(m);
@@ -28,7 +33,8 @@ export const vocePronta = () => pronto;
 function trascrivi(audio16k) {
   const id = prossimoId++;
   return new Promise((risolvi, rifiuta) => {
-    attese.set(id, { risolvi, rifiuta });
+    const scadenza = setTimeout(() => { if (attese.delete(id)) rifiuta(new Error("tempo scaduto")); }, 60_000);
+    attese.set(id, { risolvi: (t) => { clearTimeout(scadenza); risolvi(t); }, rifiuta: (e) => { clearTimeout(scadenza); rifiuta(e); } });
     worker.postMessage({ tipo: "trascrivi", id, audio: audio16k }, [audio16k.buffer]);
   });
 }

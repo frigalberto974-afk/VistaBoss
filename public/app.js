@@ -187,6 +187,10 @@ async function ascolta() {
   sbloccaVoce();
   if (inAscolto) { registra(); return; } // secondo tocco: smette di ascoltare
   if (stato.occupato) return;
+  if (!vocePronta()) {
+    mostraRisposta({ risposta: "Sto ancora preparando il microfono, aspetta che il pulsante dica «Tocca e parla»." });
+    return;
+  }
   if (window.speechSynthesis) speechSynthesis.cancel();
   inAscolto = true;
   $("detto").textContent = "";
@@ -202,7 +206,7 @@ async function ascolta() {
     const negato = err && (err.name === "NotAllowedError" || err.name === "SecurityError");
     mostraRisposta({ risposta: negato
       ? "Non ho il permesso di usare il microfono. Vai in Impostazioni, Promemoria o Safari, e consenti il microfono."
-      : "Non sono riuscito a capire. Riprova." });
+      : "Non sono riuscito a capire. Riprova tra un momento." });
     return;
   }
   inAscolto = false;
@@ -343,12 +347,14 @@ riepilogoIniziale();
 preparaNotifiche();
 // Il motore vocale si prepara all'apertura (la prima volta scarica circa 80 MB, poi resta nel telefono).
 const scaricato = {};
+$("stato").textContent = "Preparo il microfono…";
+$("microfono").classList.add("attesa");
 preparaVoce({
   progresso: (m) => {
     scaricato[m.file] = m;
     const tot = Object.values(scaricato).reduce((n, x) => n + x.totale, 0);
     const car = Object.values(scaricato).reduce((n, x) => n + x.caricato, 0);
-    if (tot > 5e6 && !vocePronta()) $("stato").textContent = `Preparo il microfono… ${Math.min(99, Math.round((car / tot) * 100))}%`;
+    if (tot > 0 && !vocePronta()) $("stato").textContent = `Preparo il microfono… ${Math.min(99, Math.round((car / tot) * 100))}%`;
   },
-  pronto: () => { if (!inAscolto && !stato.occupato) $("stato").textContent = "Tocca e parla"; },
+  pronto: () => { if (!inAscolto && !stato.occupato) impostaStato("Tocca e parla"); },
 });
