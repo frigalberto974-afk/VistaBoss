@@ -1,6 +1,6 @@
 // Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js?v=20261113g";
-import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261113g";
+import { creaRobot } from "./robot.js?v=20261116a";
+import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261116a";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
@@ -188,10 +188,12 @@ async function invia(testo) {
       aggiungiStoria("titolare", testo);
       mostraRisposta({ risposta: "Va bene, non faccio niente." });
     } else {
+      // Risposta libera con un'azione in attesa: decide il robot se è un sì (es. "certo, spostalo").
+      const inAttesa = stato.inAttesa;
       stato.inAttesa = null;
       const storia = stato.storia.slice();
       aggiungiStoria("titolare", testo);
-      mostraRisposta(await chiama({ testo, storia }));
+      mostraRisposta(await chiama(inAttesa ? { testo, storia, inAttesa } : { testo, storia }));
     }
     caricaSettimana();
   } catch {
@@ -254,6 +256,9 @@ $("testo").addEventListener("input", () => {
   }, 2500);
 });
 
+const FRASI_INVENTATE = /sottotitol|amara\.org|qtss|grazie (a tutti )?per (la visione|l'ascolto|aver guardato)|iscriviti al canale|^[\s.,!?…-]*$/i;
+function fraseInventata(t) { return FRASI_INVENTATE.test(t.trim()) || t.replace(/[^\p{L}]/gu, "").length < 2; }
+
 // Indirizzo di prova: si mostra solo cosa è stato capito, senza segnare niente in agenda.
 const modoProva = location.hostname.includes("--");
 let inAscoltoTelefono = false;
@@ -280,7 +285,8 @@ async function ascoltaSulTelefono() {
   }
   inAscoltoTelefono = false;
   impostaStato("");
-  if (!testo) { erroreAscolto("no-speech"); return; }
+  // Il motore vocale, sul rumore, a volte inventa frasi tipiche dei sottotitoli: si scartano.
+  if (!testo || fraseInventata(testo)) { erroreAscolto("no-speech"); return; }
   if (modoProva) { $("detto").textContent = ""; $("risposta").textContent = `Ho capito: «${testo}»`; robot.imposta("contento"); return; }
   invia(testo);
 }
@@ -312,7 +318,11 @@ function ascolta() {
   };
   let codiceErrore = "";
   r.onerror = (e) => { if (e.error !== "aborted") codiceErrore = e.error || "sconosciuto"; };
+  let chiuso = false;
   r.onend = () => {
+    if (chiuso) return; // l'ascolto può chiudersi più volte: la frase si invia una volta sola
+    chiuso = true;
+    clearTimeout(timerPausa);
     stato.riconoscimento = null;
     impostaStato("");
     const testo = (finale || ultimo).trim();

@@ -68,14 +68,8 @@ async function apriMicrofono() {
   microfono = { stream, ctx };
   return microfono;
 }
-// Quando l'app va in secondo piano il microfono si rilascia (si spegne il pallino arancione).
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden && microfono && !registrazione) {
-    microfono.stream.getTracks().forEach((t) => t.stop());
-    microfono.ctx.close().catch(() => {});
-    microfono = null;
-  }
-});
+// Il microfono resta aperto finché l'app è in uso: rilasciarlo a ogni passaggio in secondo piano
+// fa ripetere all'iPhone la richiesta del permesso.
 
 /** Avvia l'ascolto. Va chiamata direttamente dal tocco dell'utente. Restituisce il testo trascritto. */
 export function registra({ quandoParla, quandoFinisce } = {}) {
@@ -86,7 +80,7 @@ export function registra({ quandoParla, quandoFinisce } = {}) {
     const sorgente = ctx.createMediaStreamSource(stream);
     const proc = ctx.createScriptProcessor(4096, 1, 1);
     const pezzi = [];
-    let parlato = false, ultimoSuono = performance.now();
+    let parlato = false, ultimoSuono = performance.now(), blocchiVoce = 0;
     const inizio = performance.now();
     await new Promise((fine) => {
       ferma = fine;
@@ -97,7 +91,7 @@ export function registra({ quandoParla, quandoFinisce } = {}) {
         for (let i = 0; i < d.length; i++) s += d[i] * d[i];
         const rms = Math.sqrt(s / d.length);
         const ora = performance.now();
-        if (rms > 0.02) { if (!parlato) quandoParla?.(); parlato = true; ultimoSuono = ora; }
+        if (rms > 0.02) { blocchiVoce++; ultimoSuono = ora; if (!parlato && blocchiVoce >= 3) { parlato = true; quandoParla?.(); } }
         if ((parlato && ora - ultimoSuono > 1200) || ora - inizio > 15000 || (!parlato && ora - inizio > 7000)) fine();
       };
       sorgente.connect(proc);

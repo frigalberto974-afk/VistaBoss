@@ -244,8 +244,26 @@ export function storiaInMessaggi(storia: Scambio[]): BetaMessageParam[] {
   return unita;
 }
 
-export async function rispondi(testo: string, storia: Scambio[], dip: Dipendenze): Promise<Risposta> {
+const STRUMENTO_ESEGUI: BetaTool = {
+  name: "esegui_azione_in_attesa",
+  description:
+    "Esegue l'azione in attesa di conferma (spostamento o cancellazione). Chiamalo quando il titolare acconsente, in qualunque forma (sì, certo, va bene, procedi, spostalo, cancellalo...).",
+  input_schema: { type: "object", properties: {}, additionalProperties: false },
+};
+
+function descriviAzione(a: Azione): string {
+  return a.tipo === "sposta" ? `spostare "${a.titolo}" a ${descriviOrario(a.inizio)}` : `cancellare "${a.titolo}"`;
+}
+
+export async function rispondi(
+  testo: string,
+  storia: Scambio[],
+  dip: Dipendenze,
+  pendente?: { azione: Azione; firma: string },
+): Promise<Risposta> {
   const adesso = dip.adesso?.() ?? new Date();
+  // Azione in attesa di conferma: il modello decide se la risposta del titolare è un sì, in qualunque forma.
+  const pendenteValida = pendente && verificaFirma(pendente.azione, pendente.firma, dip.segreto, adesso.getTime()) ? pendente : undefined;
   const messaggi: BetaMessageParam[] = storiaInMessaggi(storia);
   if (messaggi.length && messaggi[messaggi.length - 1].role === "user") messaggi.pop();
   messaggi.push({ role: "user", content: testo.slice(0, 2000) });
@@ -259,8 +277,12 @@ export async function rispondi(testo: string, storia: Scambio[], dip: Dipendenze
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: { effort: "low" },
-      system: promptDiSistema(adesso),
-      tools: STRUMENTI,
+      system: pendenteValida
+        ? `${promptDiSistema(adesso)}
+
+Azione in attesa di conferma: ${descriviAzione(pendenteValida.azione)}. Se il titolare acconsente in qualunque forma, chiama esegui_azione_in_attesa senza chiedere altro. Se rifiuta, rispondi "Va bene, non faccio niente." Se chiede altro, rispondi a quello.`
+        : promptDiSistema(adesso),
+      tools: pendenteValida ? [...STRUMENTI, STRUMENTO_ESEGUI] : STRUMENTI,
       messages: messaggi,
     });
 
@@ -278,6 +300,9 @@ export async function rispondi(testo: string, storia: Scambio[], dip: Dipendenze
       return inAttesa ? { risposta, inAttesa: { azione: inAttesa, firma: firma(inAttesa, dip.segreto) } } : { risposta };
     }
 
+    if (pendenteValida && usi.some((u) => u.name === "esegui_azione_in_attesa")) {
+      return conferma(pendenteValida.azione, pendenteValida.firma, dip);
+    }
     messaggi.push({ role: "assistant", content: msg.content });
     const risultati: BetaToolResultBlockParam[] = [];
     for (const uso of usi) {

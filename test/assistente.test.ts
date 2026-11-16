@@ -161,3 +161,25 @@ describe("cose da ricordare senza orario", () => {
     expect([...agenda.dati.values()][0].inizio).toBe("2026-11-12");
   });
 });
+
+describe("conferma in qualunque forma", () => {
+  it("esegue l'azione in attesa se il titolare acconsente con parole sue", async () => {
+    const agenda = new AgendaMemoria();
+    agenda.dati.set("x1", { id: "x1", titolo: "Rossi", inizio: "2026-11-13T10:00:00", fine: "2026-11-13T11:00:00", tuttoIlGiorno: false });
+    const prepara = modelloFinto([
+      [{ type: "tool_use", id: "t1", name: "prepara_cancellazione", input: { id: "x1" } }],
+      [{ type: "text", text: "Cancello Rossi, confermi?" }],
+    ]);
+    const r1 = await rispondi("cancella Rossi", [], { modello: prepara.modello, agenda, segreto, adesso });
+    const accetta = modelloFinto([[{ type: "tool_use", id: "t2", name: "esegui_azione_in_attesa", input: {} }]]);
+    const r2 = await rispondi("certo, cancellalo pure", [], { modello: accetta.modello, agenda, segreto, adesso }, r1.inAttesa);
+    expect(r2.risposta).toBe("Fatto. Ho cancellato Rossi.");
+    expect(agenda.dati.has("x1")).toBe(false);
+    expect(accetta.richieste[0].tools!.map((t) => (t as { name: string }).name)).toContain("esegui_azione_in_attesa");
+  });
+  it("senza azione in attesa valida lo strumento non viene offerto", async () => {
+    const { modello, richieste } = modelloFinto([[{ type: "text", text: "Ok." }]]);
+    await rispondi("sì", [], { modello, agenda: new AgendaMemoria(), segreto, adesso }, { azione: { tipo: "cancella", id: "x", titolo: "x", inizio: "", scade: 0 }, firma: "falsa" });
+    expect(richieste[0].tools!.map((t) => (t as { name: string }).name)).not.toContain("esegui_azione_in_attesa");
+  });
+});

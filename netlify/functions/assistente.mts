@@ -41,7 +41,7 @@ function prepara(): Dipendenze {
 export default async (req: Request): Promise<Response> => {
   if (req.method !== "POST") return json({ errore: "Metodo non consentito" }, 405);
 
-  let corpo: { testo?: unknown; storia?: unknown; conferma?: { azione?: Azione; firma?: string } };
+  let corpo: { testo?: unknown; storia?: unknown; conferma?: { azione?: Azione; firma?: string }; inAttesa?: { azione?: Azione; firma?: string } };
   try {
     corpo = await req.json();
   } catch {
@@ -57,7 +57,11 @@ export default async (req: Request): Promise<Response> => {
       return json({ errore: "Testo mancante" }, 400);
     }
     const storia = Array.isArray(corpo.storia) ? (corpo.storia as Scambio[]) : [];
-    return json(await rispondi(corpo.testo, storia, dip));
+    const pendente =
+      corpo.inAttesa?.azione && typeof corpo.inAttesa.firma === "string"
+        ? { azione: corpo.inAttesa.azione, firma: corpo.inAttesa.firma }
+        : undefined;
+    return json(await rispondi(corpo.testo, storia, dip, pendente));
   } catch (err) {
     if (err instanceof Anthropic.APIError) {
       console.error("Errore Anthropic", err.status, err.requestID, (err.error as { error?: { type?: string } })?.error?.type);
