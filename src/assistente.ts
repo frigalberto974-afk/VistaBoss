@@ -6,6 +6,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Agenda, Appuntamento } from "./agenda.js";
 import { firma, verificaFirma, VALIDITA_MS, type Azione } from "./firma.js";
+import { sonoDoppioni } from "./doppioni.js";
 import { aggiungiMinuti, descriviOrario, durataMinuti, eOrarioLocale, istanteALocale, prossimiGiorni } from "./tempo.js";
 
 type BetaMessage = Anthropic.Beta.Messages.BetaMessage;
@@ -174,6 +175,9 @@ async function eseguiStrumento(nome: string, input: Record<string, unknown>, dip
       if (!titolo || !eOrarioLocale(input.inizio)) return { contenuto: "Titolo o orario non validi.", errore: true };
       const inizio = input.inizio.length === 16 ? `${input.inizio}:00` : input.inizio;
       const durata = intero(input.durata_minuti, 60, 5, 24 * 60);
+      // Niente doppioni: se c'è già un impegno simile alla stessa ora non se ne crea un altro.
+      const giaPresente = (await agenda.elenca(inizio, aggiungiMinuti(inizio, 1))).find((a) => sonoDoppioni(a, { titolo, inizio, tuttoIlGiorno: false }));
+      if (giaPresente) return { contenuto: `Già in agenda, non creato di nuovo: ${descriviPerModello(giaPresente)}` };
       const creato = await agenda.crea({
         titolo,
         inizio,
@@ -218,6 +222,8 @@ async function eseguiStrumento(nome: string, input: Record<string, unknown>, dip
       const titolo = testoOpzionale(input.titolo);
       const giorno = typeof input.giorno === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.giorno) ? input.giorno : istanteALocale(adesso).slice(0, 10);
       if (!titolo || !eOrarioLocale(`${giorno}T00:00:00`)) return { contenuto: "Dati non validi.", errore: true };
+      const giaPresente = (await agenda.elenca(`${giorno}T00:00:00`, `${giorno}T23:59:59`)).find((a) => sonoDoppioni(a, { titolo, inizio: giorno, tuttoIlGiorno: true }));
+      if (giaPresente) return { contenuto: `Già in agenda, non creato di nuovo: ${descriviPerModello(giaPresente)}` };
       const creato = await agenda.creaGiornata(titolo, giorno);
       return { contenuto: `Creato: ${descriviPerModello(creato)}` };
     }

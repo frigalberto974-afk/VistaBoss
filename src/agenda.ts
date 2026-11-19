@@ -11,6 +11,8 @@ export interface Appuntamento {
   inizio: string;
   fine: string;
   tuttoIlGiorno: boolean;
+  /** Data di creazione (ISO), quando nota: serve a tenere l'originale tra i doppioni. */
+  creato?: string;
   luogo?: string;
   note?: string;
 }
@@ -44,6 +46,7 @@ function daEventoGoogle(e: calendar_v3.Schema$Event): Appuntamento {
     inizio: conv(e.start),
     fine: conv(e.end),
     tuttoIlGiorno,
+    creato: e.created ?? undefined,
     luogo: e.location ?? undefined,
     note: e.description ?? undefined,
   };

@@ -1,6 +1,6 @@
 // Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js?v=20261116a";
-import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261116a";
+import { creaRobot } from "./robot.js?v=20261119a";
+import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261119a";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
@@ -380,7 +380,7 @@ async function iscrivi() {
     const { chiavePubblica } = await (await fetch("/api/iscrizione")).json();
     iscr = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64InUint8(chiavePubblica) });
   }
-  await fetch("/api/iscrizione", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(iscr) });
+  await fetch("/api/iscrizione", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...iscr.toJSON(), ricevute: true }) });
 }
 // Campanella: attiva le notifiche (o conferma che sono attive).
 async function attivaNotifiche() {

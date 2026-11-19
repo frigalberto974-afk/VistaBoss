@@ -9,7 +9,7 @@ import { json } from "../../src/servizi.js";
 export default async (req: Request): Promise<Response> => {
   if (req.method === "GET") return json({ chiavePubblica: Netlify.env.get("VAPID_PUBLIC_KEY") ?? "" });
   if (req.method !== "POST") return json({ errore: "Metodo non consentito" }, 405);
-  const iscr = (await req.json().catch(() => null)) as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } } | null;
+  const iscr = (await req.json().catch(() => null)) as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown }; ricevute?: unknown } | null;
   if (
     !iscr ||
     typeof iscr.endpoint !== "string" ||
@@ -23,6 +23,8 @@ export default async (req: Request): Promise<Response> => {
   await getStore({ name: "iscrizioni-push", consistency: "strong" }).setJSON(chiave, {
     endpoint: iscr.endpoint,
     keys: { p256dh: iscr.keys.p256dh, auth: iscr.keys.auth },
+    // Telefono aggiornato: conferma la ricezione degli avvisi.
+    ricevute: iscr.ricevute === true,
   });
   return json({ ok: true });
 };

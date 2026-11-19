@@ -183,3 +183,17 @@ describe("conferma in qualunque forma", () => {
     expect(richieste[0].tools!.map((t) => (t as { name: string }).name)).not.toContain("esegui_azione_in_attesa");
   });
 });
+
+describe("niente doppioni alla creazione", () => {
+  it("non crea un impegno simile alla stessa ora", async () => {
+    const agenda = new AgendaMemoria();
+    agenda.dati.set("x1", { id: "x1", titolo: "Incontro con il broker per il leasing", inizio: "2026-11-20T14:30:00", fine: "2026-11-20T15:30:00", tuttoIlGiorno: false });
+    const { modello, richieste } = modelloFinto([
+      [{ type: "tool_use", id: "t1", name: "crea_appuntamento", input: { titolo: "Broker per il leasing", inizio: "2026-11-20T14:30:00" } }],
+      [{ type: "text", text: "È già in agenda." }],
+    ]);
+    await rispondi("venerdì alle 14 e 30 broker per il leasing", [], { modello, agenda, segreto, adesso });
+    expect(agenda.creati).toHaveLength(0);
+    expect(JSON.stringify(richieste[1].messages.at(-1)!.content)).toContain("Già in agenda");
+  });
+});
