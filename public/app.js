@@ -1,12 +1,10 @@
-// Agenda: segretario robot, settimana, appuntamenti del giorno, cose da fare.
-import { creaRobot } from "./robot.js?v=20261119a";
-import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261119a";
+// Promemoria: settimana, impegni del giorno, microfono e notifiche.
+import { preparaVoce, registra, vocePronta } from "./voce.js?v=20261120a";
 
 const $ = (id) => document.getElementById(id);
 const FUSO = "Europe/Rome";
 const stato = { storia: [], inAttesa: null, occupato: false, riconoscimento: null, scelto: null, lunedi: null, impegni: [], cose: [], ultimaRisposta: "" };
 let robot = { imposta() {}, parla() {}, parola() {} };
-try { robot = creaRobot($("robot")); } catch (err) { console.error("Robot non disponibile", err); }
 
 // ---- Date (sempre nel fuso di Roma) ----
 const pad = (n) => String(n).padStart(2, "0");
@@ -73,7 +71,7 @@ function disegna() {
     ore.innerHTML = x.tuttoIlGiorno ? `<div class="inizio">Tutto</div><div class="fine">il giorno</div>` : `<div class="inizio">${ora(x.inizio)}</div><div class="fine">${ora(x.fine)}</div>`;
     const corpo = document.createElement("div");
     const t = document.createElement("p"); t.className = "titolo"; t.textContent = x.titolo; corpo.appendChild(t);
-    if (x.luogo) { const l = document.createElement("p"); l.className = "luogo"; l.textContent = "📍 " + x.luogo; corpo.appendChild(l); }
+    if (x.luogo) { const l = document.createElement("p"); l.className = "luogo"; l.textContent = x.luogo; corpo.appendChild(l); }
     const cestino = document.createElement("button");
     cestino.className = "cestino";
     cestino.setAttribute("aria-label", "Cancella " + x.titolo);
@@ -285,6 +283,7 @@ async function ascoltaSulTelefono() {
   }
   inAscoltoTelefono = false;
   impostaStato("");
+  testo = (testo || "").replace(/^["«“'\s]+|["»”'\s]+$/g, "").trim(); // senza virgolette attorno
   // Il motore vocale, sul rumore, a volte inventa frasi tipiche dei sottotitoli: si scartano.
   if (!testo || fraseInventata(testo)) { erroreAscolto("no-speech"); return; }
   if (modoProva) { $("detto").textContent = ""; $("risposta").textContent = `Ho capito: «${testo}»`; robot.imposta("contento"); return; }
@@ -417,8 +416,6 @@ setInterval(aggiornaOrologio, 15_000);
 $("microfono").addEventListener("click", ascolta);
 $("si").addEventListener("click", () => { sbloccaVoce(); invia("sì"); });
 $("no").addEventListener("click", () => { sbloccaVoce(); invia("no"); });
-$("robot").addEventListener("click", ascolta);
-$("robot").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ascolta(); } });
 $("ascolta-risposta").addEventListener("click", () => { sbloccaVoce(); $("ascolta-risposta").hidden = true; parla(stato.ultimaRisposta); });
 $("campanella").addEventListener("click", attivaNotifiche);
 $("form-testo").addEventListener("submit", (e) => {

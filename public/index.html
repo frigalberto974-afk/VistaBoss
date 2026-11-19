@@ -7,64 +7,55 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Promemoria">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0f1115">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f6f5f1">
   <link rel="apple-touch-icon" href="icona-180.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=swap">
-  <link rel="stylesheet" href="stile.css?v=20261119a">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap">
+  <link rel="stylesheet" href="stile.css?v=20261120a">
 </head>
 <body>
   <header class="testata">
-    <div class="riga-testata">
+    <div class="titoli">
       <h1 class="logo">Promemoria</h1>
-      <button id="campanella" class="campanella" aria-label="Notifiche">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
-      </button>
+      <p id="adesso" class="sottotitolo"></p>
     </div>
-    <p id="adesso" class="sottotitolo"></p>
+    <button id="campanella" class="campanella" aria-label="Notifiche">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    </button>
   </header>
 
-  <section class="segretario pannello" aria-label="Segretario">
-    <canvas id="robot" class="robot" aria-label="Tocca il robottino per parlare" role="button" tabindex="0"></canvas>
-    <div class="nuvola" aria-live="polite">
+  <nav id="settimana" class="settimana" aria-label="Giorni della settimana (scorri per cambiare settimana)"></nav>
+
+  <main class="giornata">
+    <h2 id="titolo-giorno" class="titolo-giorno"></h2>
+    <ul id="elenco" class="elenco" aria-live="polite"></ul>
+    <p id="vuoto" class="vuoto" hidden>Nessun impegno</p>
+    <p id="errore-elenco" class="vuoto" hidden>Non riesco a leggere il calendario. Riprova tra poco.</p>
+  </main>
+
+  <footer class="piede">
+    <div class="messaggio" aria-live="polite">
       <p id="detto" class="detto"></p>
       <p id="risposta" class="risposta"></p>
       <div id="conferma" class="conferma" hidden>
         <button id="no" class="pulsante no">No</button>
         <button id="si" class="pulsante si">Sì, confermo</button>
       </div>
-      <button id="ascolta-risposta" class="ascolta" hidden>🔊 Ascolta</button>
+      <button id="ascolta-risposta" class="ascolta" hidden>Ascolta</button>
     </div>
-  </section>
-
-
-  <main class="giornata">
-    <section class="pannello">
-      <nav id="settimana" class="settimana" aria-label="Giorni della settimana (scorri per cambiare settimana)"></nav>
-      <h2 id="titolo-giorno" class="titolo-sezione"></h2>
-    <ul id="elenco" class="elenco" aria-live="polite"></ul>
-    <p id="vuoto" class="vuoto piccolo" hidden>Nessun impegno</p>
-    <p id="errore-elenco" class="vuoto" hidden>Non riesco a leggere il calendario. Riprova tra poco.</p>
-    </section>
-
-  </main>
-
-
-  <footer class="piede">
     <form id="form-testo" class="form-testo" hidden>
       <input id="testo" type="text" autocomplete="off" enterkeyhint="send" aria-label="Scrivi una richiesta">
-      <button type="submit" class="invia" aria-label="Invia">➤</button>
+      <button type="submit" class="invia" aria-label="Invia">Invia</button>
     </form>
-    <button id="microfono" class="microfono" aria-label="Parla con l'assistente">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
-      <span id="stato" class="stato"></span>
+    <button id="microfono" class="microfono" aria-label="Parla">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/></svg>
     </button>
+    <p id="stato" class="stato"></p>
   </footer>
 
-  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
-  <script type="module" src="app.js?v=20261119a"></script>
+  <script type="module" src="app.js?v=20261120a"></script>
 </body>
 </html>
